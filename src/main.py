@@ -4,6 +4,7 @@ import sys
 from src.exception import ParserError
 from src.parser.parser import MapParser
 from src.routing.graph import Graph
+from src.routing.path_finder import Pathfinder
 
 
 def main() -> int:
@@ -19,27 +20,20 @@ def main() -> int:
         print(f"Error: {error}")
         return 1
 
-    # print(f"Drones: {fly_map.nb_drones}")
-    # print(f"Hubs: {len(fly_map.hubs)}")
-    # print(f"Connections: {len(fly_map.connections)}")
-
-    # print("Start:", fly_map.start_hub)
-    # print("Goal:", fly_map.end_hub)
-
-    # path = Path("maps/easy/02_simple_fork.txt")
-
-    # fly_map = MapParser().parse_file(path)
-
     graph = Graph(fly_map)
 
-    print("Start:", fly_map.start_hub)
-    print("Goal:", fly_map.end_hub)
-    print(fly_map.connections)
+    pathfinder = Pathfinder(graph)
 
-    # print("Neighbors of start:", graph.neighbors("start"))
-    # print("Neighbors of junction:", graph.neighbors("waypoint1"))
-    # print("Neighbors of path_a:", graph.neighbors("waypoint2"))
-    # print("Neighbors of goal:", graph.neighbors("goal"))
+    path = pathfinder.find_path(
+        fly_map.start_hub,
+        fly_map.end_hub,
+    )
+
+    if path is None:
+        print("No path found")
+    else:
+        print("Path found:")
+        print(" -> ".join(path))
     return 0
 
 

@@ -117,11 +117,20 @@ class MapParser:
                     line_number,
                 )
         if nb_drones is None:
-            raise ParserError("missing nb_drones")
+            raise ParserError(
+                "missing nb_drones",
+                line_number,
+                )
         if start_hub is None:
-            raise ParserError("missing start_hub")
+            raise ParserError(
+                "missing start_hub",
+                line_number,
+                )
         if end_hub is None:
-            raise ParserError("missing end_hub")
+            raise ParserError(
+                "missing end_hub",
+                line_number,
+                )
 
         return FlyMap(
             nb_drones=nb_drones,
