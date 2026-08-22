@@ -68,6 +68,12 @@ class Simulation:
         link_usage: dict[frozenset[str], int],
     ) -> bool:
         hub = self.graph.fly_map.hubs[next_hub]
+        if hub.zone == "blocked":
+            return False
+
+        if hub.zone == "restricted":
+            if hub_usage.get(next_hub, 0) >= 1:
+                return False
 
         if (
             hub.max_drones is not None
