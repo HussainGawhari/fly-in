@@ -12,28 +12,33 @@ def main() -> int:
         print("Usage: python -m fly_in.main <map_file>")
         return 1
 
-    path = Path(sys.argv[1])
+    map_path = Path(sys.argv[1])
 
     try:
-        fly_map = MapParser().parse_file(path)
+        fly_map = MapParser().parse_file(map_path)
     except (OSError, ParserError) as error:
         print(f"Error: {error}")
         return 1
 
-    graph = Graph(fly_map)
+    if fly_map.start_hub is None or fly_map.end_hub is None:
+        print("Error: start_hub or end_hub is missing")
+        return 1
 
+    graph = Graph(fly_map)
     pathfinder = Pathfinder(graph)
 
-    path = pathfinder.find_path(
+    routes = pathfinder.find_best_paths(
         fly_map.start_hub,
         fly_map.end_hub,
     )
 
-    if path is None:
+    if not routes:
         print("No path found")
     else:
-        print("Path found:")
-        print(" -> ".join(path))
+        print("Paths found:")
+        for index, route in enumerate(routes, start=1):
+            print(f"{index}: {' -> '.join(route)}")
+
     return 0
 
 
