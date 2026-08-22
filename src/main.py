@@ -5,6 +5,8 @@ from src.exception import ParserError
 from src.parser.parser import MapParser
 from src.routing.graph import Graph
 from src.routing.path_finder import Pathfinder
+from src.simulation.scheduler import Scheduler
+from src.simulation.simulation import Simulation
 
 
 def main() -> int:
@@ -34,10 +36,24 @@ def main() -> int:
 
     if not routes:
         print("No path found")
-    else:
-        print("Paths found:")
-        for index, route in enumerate(routes, start=1):
-            print(f"{index}: {' -> '.join(route)}")
+        return 1
+
+    print("Paths found:")
+    for index, route in enumerate(routes, start=1):
+        print(f"{index}: {' -> '.join(route.hubs)}")
+
+    scheduler = Scheduler(routes, fly_map.nb_drones)
+    drones = scheduler.create_drones()
+
+    print("\nDrone assignments:")
+    for drone in drones:
+        print(
+            f"Drone {drone.drone_id}: "
+            f"{' -> '.join(drone.route.hubs)}"
+        )
+
+    simulation = Simulation(drones, graph)
+    simulation.run()
 
     return 0
 

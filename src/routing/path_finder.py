@@ -112,9 +112,8 @@ class Pathfinder:
         start: str,
         goal: str,
         max_paths: int = 5,
-    ) -> list[list[str]]:
+    ) -> list[Route]:
         paths = self.find_paths(start, goal, max_paths)
-
-        paths.sort(key=len)
+        paths.sort(key=lambda route: route.length)
 
         return paths

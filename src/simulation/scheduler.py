@@ -9,10 +9,10 @@ class Scheduler:
         self.nb_drones = nb_drones
 
     def create_drones(self) -> list[Drone]:
-        drones = list[Drone] = []
+        drones: list[Drone] = []
 
-        for drone_id in range(1, self.nb_drones) + 1:
-            route = self.routes((drone_id - 1) % len(self.routes))
+        for drone_id in range(1, self.nb_drones + 1):
+            route = self.routes[(drone_id - 1) % len(self.routes)]
             drones.append(Drone(drone_id, route))
 
-            return drones
+        return drones
