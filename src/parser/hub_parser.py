@@ -67,7 +67,11 @@ class HubParser:
         max_drones: int | None = None
         if "max_drones" in metadata:
             try:
-                max_drones = int(metadata.get("max_drones"))
+                max_drones_str = metadata.get("max_drones")
+                if max_drones_str is not None:
+                    max_drones = int(max_drones_str)
+                else:
+                    max_drones = None
             except ValueError:
                 raise ParserError(
                     "max_drones must be an integer",

@@ -4,6 +4,9 @@ import sys
 from src.exception import ParserError
 from src.parser.parser import MapParser
 from src.routing.graph import Graph
+from src.routing.path_finder import Pathfinder
+from src.simulation.scheduler import Scheduler
+from src.simulation.simulation import Simulation
 
 
 def main() -> int:
@@ -11,35 +14,47 @@ def main() -> int:
         print("Usage: python -m fly_in.main <map_file>")
         return 1
 
-    path = Path(sys.argv[1])
+    map_path = Path(sys.argv[1])
 
     try:
-        fly_map = MapParser().parse_file(path)
+        fly_map = MapParser().parse_file(map_path)
     except (OSError, ParserError) as error:
         print(f"Error: {error}")
         return 1
 
-    # print(f"Drones: {fly_map.nb_drones}")
-    # print(f"Hubs: {len(fly_map.hubs)}")
-    # print(f"Connections: {len(fly_map.connections)}")
-
-    # print("Start:", fly_map.start_hub)
-    # print("Goal:", fly_map.end_hub)
-
-    # path = Path("maps/easy/02_simple_fork.txt")
-
-    # fly_map = MapParser().parse_file(path)
+    if fly_map.start_hub is None or fly_map.end_hub is None:
+        print("Error: start_hub or end_hub is missing")
+        return 1
 
     graph = Graph(fly_map)
+    pathfinder = Pathfinder(graph)
 
-    print("Start:", fly_map.start_hub)
-    print("Goal:", fly_map.end_hub)
-    print(fly_map.connections)
+    routes = pathfinder.find_best_paths(
+        fly_map.start_hub,
+        fly_map.end_hub,
+    )
 
-    # print("Neighbors of start:", graph.neighbors("start"))
-    # print("Neighbors of junction:", graph.neighbors("waypoint1"))
-    # print("Neighbors of path_a:", graph.neighbors("waypoint2"))
-    # print("Neighbors of goal:", graph.neighbors("goal"))
+    if not routes:
+        print("No path found")
+        return 1
+
+    print("Paths found:")
+    for index, route in enumerate(routes, start=1):
+        print(f"{index}: {' -> '.join(route.hubs)}")
+
+    scheduler = Scheduler(routes, fly_map.nb_drones)
+    drones = scheduler.create_drones()
+
+    print("\nDrone assignments:")
+    for drone in drones:
+        print(
+            f"Drone {drone.drone_id}: "
+            f"{' -> '.join(drone.route.hubs)}"
+        )
+
+    simulation = Simulation(drones, graph)
+    simulation.run()
+
     return 0
 
 
