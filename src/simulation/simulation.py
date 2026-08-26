@@ -1,6 +1,6 @@
 from src.models.connection import Connection
 from src.models.drone import Drone
-from src.models.hub import Hub
+# from src.models.hub import Hub # ignore
 from src.routing.graph import Graph
 
 
@@ -24,7 +24,16 @@ class Simulation:
         hub_usage = self._get_hub_usage()
         link_usage: dict[frozenset[str], int] = {}
 
-        for drone in self.drones:
+        ordered_drones = sorted(
+            self.drones,
+            key=lambda drone: (
+                self._is_priority_drone(drone),
+                -drone.drone_id,
+            ),
+            reverse=True,
+        )
+
+        for drone in ordered_drones:
             if drone.finished:
                 continue
 
@@ -40,6 +49,11 @@ class Simulation:
                 continue
 
             drone.move()
+
+            print(
+                f"{self.time}: Drone {drone.drone_id} "
+                f"moved {current} -> {next_hub}"
+            )
 
             hub_usage[current] -= 1
             hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
@@ -117,3 +131,14 @@ class Simulation:
                 f"Drone {drone.drone_id} "
                 f"at {drone.current_hub}"
             )
+
+    def _is_priority_drone(self, drone: Drone) -> bool:
+        next_position = drone.position + 1
+
+        if next_position >= len(drone.route.hubs):
+            return False
+
+        next_hub = drone.route.hubs[next_position]
+        hub = self.graph.fly_map.hubs[next_hub]
+
+        return hub.zone == "priority"
