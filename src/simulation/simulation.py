@@ -59,11 +59,6 @@ class Simulation:
             self.previous_positions[drone.drone_id] = current
             drone.move()
 
-            #print(
-            #    f"{self.time}: Drone {drone.drone_id} "
-            #    f"moved {current} -> {next_hub}"
-            #)
-
             hub_usage[current] -= 1
             hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
 
@@ -154,3 +149,14 @@ class Simulation:
 
     def get_drone_previous_hub(self, drone_id: int) -> str:
         return self.previous_positions[drone_id]
+
+    def reset(self) -> None:
+        for drone in self.drones:
+            drone.position = 0
+
+        self.time = 0
+
+        self.previous_positions = {
+            drone.drone_id: drone.current_hub
+            for drone in self.drones
+        }
