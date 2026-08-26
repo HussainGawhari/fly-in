@@ -13,12 +13,20 @@ class Simulation:
         self.drones = drones
         self.graph = graph
         self.time = 0
+        self.previous_positions: dict[int, str] = {
+            drone.drone_id: drone.current_hub
+            for drone in drones
+        }
 
     def run(self) -> None:
         while not self._finished():
-            self._step()
+            self.step()
 
-    def _step(self) -> None:
+    @property
+    def finished(self) -> bool:
+        return self._finished()
+
+    def step(self) -> None:
         self.time += 1
 
         hub_usage = self._get_hub_usage()
@@ -48,12 +56,13 @@ class Simulation:
             ):
                 continue
 
+            self.previous_positions[drone.drone_id] = current
             drone.move()
 
-            print(
-                f"{self.time}: Drone {drone.drone_id} "
-                f"moved {current} -> {next_hub}"
-            )
+            #print(
+            #    f"{self.time}: Drone {drone.drone_id} "
+            #    f"moved {current} -> {next_hub}"
+            #)
 
             hub_usage[current] -= 1
             hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
@@ -142,3 +151,6 @@ class Simulation:
         hub = self.graph.fly_map.hubs[next_hub]
 
         return hub.zone == "priority"
+
+    def get_drone_previous_hub(self, drone_id: int) -> str:
+        return self.previous_positions[drone_id]

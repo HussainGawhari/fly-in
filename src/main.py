@@ -46,19 +46,16 @@ def main() -> int:
 
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
-    view = PygameView(graph, drones)
-    view.run()
-
-    print("\nDrone assignments:")
-    for drone in drones:
-        print(
-            f"Drone {drone.drone_id}: "
-            f"{' -> '.join(drone.route.hubs)}"
-        )
 
     simulation = Simulation(drones, graph)
-    simulation.run()
 
+    view = PygameView(
+        graph,
+        drones,
+        simulation,
+    )
+
+    view.run()
     return 0
 
 

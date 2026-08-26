@@ -2,6 +2,7 @@ import pygame
 
 from src.models.drone import Drone
 from src.routing.graph import Graph
+from src.simulation.simulation import Simulation
 
 
 class PygameView:
@@ -9,9 +10,17 @@ class PygameView:
         self,
         graph: Graph,
         drones: list[Drone],
+        simulation: Simulation,
     ) -> None:
         self.graph = graph
         self.drones = drones
+        self.simulation = simulation
+
+        self.step_interval = 1000
+        self.animation_duration = 500
+        self.last_step = pygame.time.get_ticks()
+
+        self.animation_start: dict[int, int] = {}
 
         pygame.init()
 
@@ -28,6 +37,18 @@ class PygameView:
                 if event.type == pygame.QUIT:
                     running = False
 
+            current_time = pygame.time.get_ticks()
+
+            if (
+                not self.simulation.finished
+                and current_time - self.last_step >= self.step_interval
+            ):
+                self.simulation.step()
+                self.last_step = current_time
+
+                for drone in self.drones:
+                    self.animation_start[drone.drone_id] = current_time
+
             self.screen.fill((30, 30, 30))
 
             self._draw_connections()
@@ -35,6 +56,7 @@ class PygameView:
             self._draw_drones()
 
             pygame.display.flip()
+
             self.clock.tick(60)
 
         pygame.quit()
@@ -66,24 +88,66 @@ class PygameView:
             )
 
     def _draw_drones(self) -> None:
-        hubs = self.graph.fly_map.hubs
+        current_time = pygame.time.get_ticks()
 
         for drone in self.drones:
-            hub = hubs[drone.current_hub]
+            position = self._get_drone_position(
+                drone,
+                current_time,
+            )
 
             pygame.draw.circle(
                 self.screen,
                 (240, 200, 50),
-                self._position(hub.x, hub.y),
+                position,
                 8,
             )
 
-    def _position(self, x: int, y: int) -> tuple[int, int]:
+    def _get_drone_position(
+        self,
+        drone: Drone,
+        current_time: int,
+    ) -> tuple[int, int]:
+        current_hub = self.graph.fly_map.hubs[drone.current_hub]
+
+        previous_name = self.simulation.get_drone_previous_hub(
+            drone.drone_id
+        )
+
+        previous_hub = self.graph.fly_map.hubs[previous_name]
+
+        start_time = self.animation_start.get(
+            drone.drone_id,
+            current_time,
+        )
+
+        elapsed = current_time - start_time
+
+        progress = min(
+            elapsed / self.animation_duration,
+            1.0,
+        )
+
+        x = previous_hub.x + (
+            current_hub.x - previous_hub.x
+        ) * progress
+
+        y = previous_hub.y + (
+            current_hub.y - previous_hub.y
+        ) * progress
+
+        return self._position(x, y)
+
+    def _position(
+        self,
+        x: float,
+        y: float,
+    ) -> tuple[int, int]:
         scale = 100
         offset_x = 100
         offset_y = 100
 
         return (
-            offset_x + x * scale,
-            offset_y + y * scale,
+            round(offset_x + x * scale),
+            round(offset_y + y * scale),
         )
