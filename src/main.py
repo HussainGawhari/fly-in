@@ -1,5 +1,7 @@
 from pathlib import Path
 import sys
+from src.visulalization.visualize_view import PygameView
+
 
 from src.exception import ParserError
 from src.parser.parser import MapParser
@@ -44,6 +46,8 @@ def main() -> int:
 
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
+    view = PygameView(graph, drones)
+    view.run()
 
     print("\nDrone assignments:")
     for drone in drones:
