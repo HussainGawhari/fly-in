@@ -58,6 +58,18 @@ class PygameView:
                     elif event.key == pygame.K_SPACE:
                         self.paused = not self.paused
 
+                    elif event.key == pygame.K_LEFT:
+                        self.step_interval = min(
+                            self.step_interval + 100,
+                            3000,
+                        )
+
+                    elif event.key == pygame.K_RIGHT:
+                        self.step_interval = max(
+                            self.step_interval - 100,
+                            100,
+                        )
+
                     elif event.key == pygame.K_r:
                         self.simulation.reset()
                         current_time = pygame.time.get_ticks()
@@ -73,11 +85,39 @@ class PygameView:
                 and not self.simulation.finished
                 and current_time - self.last_step >= self.step_interval
             ):
+                was_moving = {
+                    drone.drone_id: drone.moving
+                    for drone in self.drones
+                }
+                positions_before = {
+                    drone.drone_id: drone.current_hub
+                    for drone in self.drones
+                }
                 self.simulation.step()
                 self.last_step = current_time
 
                 for drone in self.drones:
-                    self.animation_start[drone.drone_id] = current_time
+                    drone_id = drone.drone_id
+                    arrived_from_restricted = (
+                        was_moving[drone_id]
+                        and not drone.moving
+                        and drone.last_move_cost == 2
+                    )
+                    started_travel = (
+                        not was_moving[drone_id]
+                        and drone.moving
+                    )
+                    arrived_normally = (
+                        not was_moving[drone_id]
+                        and not drone.moving
+                        and positions_before[drone_id]
+                        != drone.current_hub
+                    )
+
+                    if arrived_from_restricted:
+                        continue
+                    if started_travel or arrived_normally:
+                        self.animation_start[drone_id] = current_time
 
             self.screen.fill((30, 30, 30))
 
@@ -85,7 +125,6 @@ class PygameView:
             self._draw_hubs()
             self._draw_drones()
             self._draw_controls()
-
             self._draw_info()
             pygame.display.flip()
 
@@ -143,6 +182,15 @@ class PygameView:
                 22,
             )
 
+            if hub.zone == "restricted":
+                pygame.draw.circle(
+                    self.screen,
+                    (100, 190, 255),
+                    position,
+                    29,
+                    3,
+                )
+
             label = font.render(
                 hub.name,
                 True,
@@ -187,6 +235,12 @@ class PygameView:
                 angle = self._get_drone_angle(drone)
 
                 self._draw_drone(position, angle)
+                self._draw_drone_id(position, drone.drone_id)
+                self._draw_drone_progress(
+                    drone,
+                    position,
+                    current_time,
+                )
 
     def _offset_drone_position(
         self,
@@ -254,6 +308,63 @@ class PygameView:
             rotated_points,
         )
 
+    def _draw_drone_id(
+        self,
+        position: tuple[int, int],
+        drone_id: int,
+    ) -> None:
+        font = pygame.font.Font(None, 16)
+        label = font.render(str(drone_id), True, (30, 30, 30))
+        self.screen.blit(
+            label,
+            (
+                position[0] - label.get_width() // 2,
+                position[1] - label.get_height() // 2,
+            ),
+        )
+
+    def _draw_drone_progress(
+        self,
+        drone: Drone,
+        position: tuple[int, int],
+        current_time: int,
+    ) -> None:
+        if not drone.moving or drone.last_move_cost != 2:
+            return
+
+        start_time = self.animation_start.get(
+            drone.drone_id,
+            current_time,
+        )
+        progress = min(
+            (current_time - start_time) / self.animation_duration,
+            1.0,
+        )
+        rectangle = pygame.Rect(
+            position[0] - 27,
+            position[1] - 27,
+            54,
+            54,
+        )
+        pygame.draw.arc(
+            self.screen,
+            (255, 235, 80),
+            rectangle,
+            math.pi / 2,
+            math.pi / 2 + math.tau * progress,
+            4,
+        )
+
+        font = pygame.font.Font(None, 16)
+        label = font.render("2T", True, (255, 235, 80))
+        self.screen.blit(
+            label,
+            (
+                position[0] - label.get_width() // 2,
+                position[1] + 30,
+            ),
+        )
+
     def _get_drone_position(
         self,
         drone: Drone,
@@ -267,6 +378,15 @@ class PygameView:
 
         previous_hub = self.graph.fly_map.hubs[previous_name]
 
+        target_hub = current_hub
+        movement_cost = drone.last_move_cost
+        if drone.moving:
+            target_hub = self.graph.fly_map.hubs[
+                drone.route.hubs[drone.position + 1]
+            ]
+            previous_hub = current_hub
+            movement_cost = drone.last_move_cost
+
         start_time = self.animation_start.get(
             drone.drone_id,
             current_time,
@@ -275,16 +395,16 @@ class PygameView:
         elapsed = current_time - start_time
 
         progress = min(
-            elapsed / self.animation_duration,
+            elapsed / (self.animation_duration * movement_cost),
             1.0,
         )
 
         x = previous_hub.x + (
-            current_hub.x - previous_hub.x
+            target_hub.x - previous_hub.x
         ) * progress
 
         y = previous_hub.y + (
-            current_hub.y - previous_hub.y
+            target_hub.y - previous_hub.y
         ) * progress
 
         return self._position(x, y)
@@ -430,7 +550,7 @@ class PygameView:
             f"{status} | "
             f"Time: {self.simulation.time} | "
             f"Speed: {1000 / self.step_interval:.1f} steps/s | "
-            f"SPACE: pause | +/-: speed | R: restart | ESC: quit"
+            f"SPACE: pause | LEFT/RIGHT: speed | R: restart | ESC: quit"
         )
 
         label = font.render(

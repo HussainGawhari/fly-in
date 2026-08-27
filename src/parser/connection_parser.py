@@ -36,7 +36,7 @@ class ConnectionParser:
             line_number,
         )
 
-        max_capacity: int | None = None
+        max_capacity = 1
 
         if "max_link_capacity" in metadata:
             try:

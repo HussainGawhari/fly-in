@@ -27,11 +27,13 @@ class Simulation:
         return self._finished()
 
     def step(self) -> None:
-
         self.time += 1
 
+        completed_travel = self._complete_travel()
         hub_usage = self._get_hub_usage()
         link_usage: dict[frozenset[str], int] = {}
+        reserved_hubs = self._get_reserved_hubs()
+        link_usage.update(self._get_travel_link_usage())
 
         ordered_drones = sorted(
             self.drones,
@@ -45,6 +47,10 @@ class Simulation:
         for drone in ordered_drones:
             if drone.finished:
                 continue
+            if drone.moving:
+                continue
+            if drone.drone_id in completed_travel:
+                continue
 
             current = drone.current_hub
             next_hub = drone.route.hubs[drone.position + 1]
@@ -54,19 +60,24 @@ class Simulation:
                 next_hub,
                 hub_usage,
                 link_usage,
+                reserved_hubs,
             ):
                 continue
 
             self.previous_positions[drone.drone_id] = current
-            drone.move()
-
-            hub_usage[current] -= 1
-            hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
-
             link = self._find_connection(current, next_hub)
+            if link is None:
+                continue
 
-            if link is not None:
-                link_usage[link.key] = link_usage.get(link.key, 0) + 1
+            drone.last_move_cost = self._movement_cost(next_hub)
+            drone.travel_remaining = drone.last_move_cost
+            reserved_hubs[next_hub] = reserved_hubs.get(next_hub, 0) + 1
+            link_usage[link.key] = link_usage.get(link.key, 0) + 1
+
+            if drone.travel_remaining == 1:
+                self._finish_drone_move(drone)
+                hub_usage[current] -= 1
+                hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
 
         self._print_state()
 
@@ -85,18 +96,19 @@ class Simulation:
         next_hub: str,
         hub_usage: dict[str, int],
         link_usage: dict[frozenset[str], int],
+        reserved_hubs: dict[str, int],
     ) -> bool:
         hub = self.graph.fly_map.hubs[next_hub]
         if hub.zone == "blocked":
             return False
 
-        if hub.zone == "restricted":
-            if hub_usage.get(next_hub, 0) >= 1:
-                return False
-
         if (
             hub.max_drones is not None
-            and hub_usage.get(next_hub, 0) >= hub.max_drones
+            and (
+                hub_usage.get(next_hub, 0)
+                + reserved_hubs.get(next_hub, 0)
+                >= hub.max_drones
+            )
         ):
             return False
 
@@ -112,6 +124,45 @@ class Simulation:
                 return False
 
         return True
+
+    def _movement_cost(self, hub_name: str) -> int:
+        zone = self.graph.fly_map.hubs[hub_name].zone
+        return 2 if zone == "restricted" else 1
+
+    def _complete_travel(self) -> set[int]:
+        completed: set[int] = set()
+        for drone in self.drones:
+            if not drone.moving:
+                continue
+            drone.travel_remaining -= 1
+            if drone.travel_remaining == 0:
+                self._finish_drone_move(drone)
+                completed.add(drone.drone_id)
+        return completed
+
+    def _finish_drone_move(self, drone: Drone) -> None:
+        drone.travel_remaining = 0
+        drone.move()
+
+    def _get_reserved_hubs(self) -> dict[str, int]:
+        reserved: dict[str, int] = {}
+        for drone in self.drones:
+            if drone.moving:
+                next_hub = drone.route.hubs[drone.position + 1]
+                reserved[next_hub] = reserved.get(next_hub, 0) + 1
+        return reserved
+
+    def _get_travel_link_usage(self) -> dict[frozenset[str], int]:
+        usage: dict[frozenset[str], int] = {}
+        for drone in self.drones:
+            if drone.moving:
+                link = self._find_connection(
+                    drone.current_hub,
+                    drone.route.hubs[drone.position + 1],
+                )
+                if link is not None:
+                    usage[link.key] = usage.get(link.key, 0) + 1
+        return usage
 
     def _find_connection(
         self,
@@ -154,6 +205,8 @@ class Simulation:
     def reset(self) -> None:
         for drone in self.drones:
             drone.position = 0
+            drone.travel_remaining = 0
+            drone.last_move_cost = 1
 
         self.time = 0
 

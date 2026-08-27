@@ -14,7 +14,7 @@ class Hub(BaseModel):
 
     zone: str = "normal"
     color: str | None = None
-    max_drones: int | None = Field(default=None, gt=0)
+    max_drones: int | None = Field(default=1, gt=0)
 
     is_start: bool = False
     is_end: bool = False
