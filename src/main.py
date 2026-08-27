@@ -7,7 +7,7 @@ from src.routing.graph import Graph
 from src.routing.path_finder import Pathfinder
 from src.simulation.scheduler import Scheduler
 from src.simulation.simulation import Simulation
-from src.visulalization.visualize_view import PygameView
+from src.visualization.visualize_view import PygameView
 
 
 def main() -> int:
