@@ -27,6 +27,7 @@ class Simulation:
         return self._finished()
 
     def step(self) -> None:
+
         self.time += 1
 
         hub_usage = self._get_hub_usage()

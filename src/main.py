@@ -1,7 +1,5 @@
 from pathlib import Path
 import sys
-from src.visulalization.visualize_view import PygameView
-
 
 from src.exception import ParserError
 from src.parser.parser import MapParser
@@ -9,11 +7,12 @@ from src.routing.graph import Graph
 from src.routing.path_finder import Pathfinder
 from src.simulation.scheduler import Scheduler
 from src.simulation.simulation import Simulation
+from src.visulalization.visualize_view import PygameView
 
 
 def main() -> int:
     if len(sys.argv) != 2:
-        print("Usage: python -m fly_in.main <map_file>")
+        print("Usage: python -m src.main <map_file>")
         return 1
 
     map_path = Path(sys.argv[1])
@@ -47,6 +46,13 @@ def main() -> int:
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
 
+    print("\nDrone assignments:")
+    for drone in drones:
+        print(
+            f"Drone {drone.drone_id}: "
+            f"{' -> '.join(drone.route.hubs)}"
+        )
+
     simulation = Simulation(drones, graph)
 
     view = PygameView(
@@ -56,6 +62,29 @@ def main() -> int:
     )
 
     view.run()
+
+    print("\n" + "=" * 50)
+    print("SIMULATION SOLUTION")
+    print("=" * 50)
+    print(f"Total turns: {simulation.time}")
+    print(f"Total drones: {len(drones)}")
+
+    print("\nFinal routes:")
+    for drone in drones:
+        print(
+            f"Drone {drone.drone_id}: "
+            f"{' -> '.join(drone.route.hubs)}"
+        )
+
+    print("\nFinal positions:")
+    for drone in drones:
+        print(
+            f"Drone {drone.drone_id}: "
+            f"{drone.current_hub}"
+        )
+
+    print("=" * 50)
+
     return 0
 
 

@@ -85,6 +85,8 @@ class PygameView:
             self._draw_hubs()
             self._draw_drones()
             self._draw_controls()
+
+            self._draw_info()
             pygame.display.flip()
 
             self.clock.tick(60)
@@ -338,28 +340,6 @@ class PygameView:
 
         return round(screen_x), round(screen_y)
 
-    #def _hub_color(self, hub: Hub) -> tuple[int, int, int]:
-    #    if hub.color is not None:
-    #        color = pygame.Color(hub.color)
-    #        return (color.r, color.g, color.b)
-
-    #    if hub.is_start:
-    #        return (50, 200, 80)
-
-    #    if hub.is_end:
-    #        return (220, 60, 60)
-
-    #    if hub.zone == "blocked":
-    #        return (60, 60, 60)
-
-    #    if hub.zone == "restricted":
-    #        return (60, 120, 220)
-
-    #    if hub.zone == "priority":
-    #        return (240, 160, 40)
-
-    #    return (90, 140, 200)
-
     def _hub_color(self, hub: Hub) -> tuple[int, int, int]:
         colors: dict[str, tuple[int, int, int]] = {
             "red": (255, 0, 0),
@@ -482,3 +462,20 @@ class PygameView:
         return math.degrees(
             math.atan2(dy, dx)
         )
+
+    def _draw_info(self) -> None:
+        font = pygame.font.Font(None, 32)
+
+        finished = sum(
+            drone.finished
+            for drone in self.drones
+        )
+
+        text = font.render(
+            f"Turn: {self.simulation.time}   "
+            f"Finished: {finished}/{len(self.drones)}",
+            True,
+            (255, 255, 255),
+        )
+
+        self.screen.blit(text, (20, 20))
