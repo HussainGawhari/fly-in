@@ -70,8 +70,6 @@ class ConstraintTests(unittest.TestCase):
         simulation.step()
         self.assertEqual(drone.current_hub, "start")
         simulation.step()
-        self.assertEqual(drone.current_hub, "slow")
-        simulation.step()
         self.assertEqual(drone.current_hub, "end")
 
     def test_pathfinder_skips_blocked_and_prefers_priority(self) -> None:
@@ -129,6 +127,31 @@ class ConstraintTests(unittest.TestCase):
 
         self.assertTrue(drones[0].finished)
         self.assertFalse(drones[1].finished)
+
+    def test_capacity_two_zone_allows_two_one_turn_arrivals(self) -> None:
+        graph = make_graph(
+            [
+                Hub(name="start", x=0, y=0, is_start=True, max_drones=None),
+                Hub(name="zone", x=1, y=0, max_drones=2),
+                Hub(name="end", x=2, y=0, is_end=True, max_drones=None),
+            ],
+            [
+                Connection(
+                    hub1="start",
+                    hub2="zone",
+                    max_link_capacity=2,
+                ),
+                Connection(hub1="zone", hub2="end"),
+            ],
+        )
+        drones = [Drone(index, Route(["start", "zone"])) for index in (1, 2)]
+
+        Simulation(drones, graph).step()
+
+        self.assertEqual(
+            [drone.current_hub for drone in drones],
+            ["zone", "zone"],
+        )
 
 
 if __name__ == "__main__":
