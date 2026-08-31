@@ -1,3 +1,5 @@
+import pygame
+
 from src.models.drone import Drone
 from src.routing.graph import Graph
 from src.simulation.simulation import Simulation
@@ -19,25 +21,29 @@ class Renderer:
         animation_start: dict[int, int],
         animation_duration: int,
     ) -> None:
-        self.screen = screen
+        # Switch to fullscreen.
+        self.screen = pygame.display.set_mode(
+            (0, 0),
+            pygame.FULLSCREEN,
+        )
 
-        self.geometry = Geometry(screen)
+        self.geometry = Geometry(self.screen)
 
         self.connections = ConnectionRenderer(
-            screen,
+            self.screen,
             graph,
             self.geometry,
         )
 
         self.hubs = HubRenderer(
-            screen,
+            self.screen,
             graph,
             drones,
             self.geometry,
         )
 
         self.drones = DroneRenderer(
-            screen,
+            self.screen,
             graph,
             drones,
             simulation,
@@ -47,7 +53,7 @@ class Renderer:
         )
 
         self.controls = ControlsRenderer(
-            screen,
+            self.screen,
             drones,
             simulation,
         )

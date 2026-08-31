@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 import pygame
 
@@ -10,23 +11,23 @@ from src.simulation.simulation import Simulation
 class DroneRenderer:
     def __init__(
         self,
-        screen,
+        screen: pygame.Surface,
         graph: Graph,
         drones: list[Drone],
         simulation: Simulation,
-        geometry,
+        geometry: Any,
         animation_start: dict[int, int],
         animation_duration: int,
     ) -> None:
         self.screen = screen
         self.graph = graph
         self.drones = drones
-        self.simulation = simulation
-        self.geometry = geometry
-        self.animation_start = animation_start
-        self.animation_duration = animation_duration
+        self.sim = simulation
+        self.geo = geometry
+        self.anim_start = animation_start
+        self.duration = animation_duration
 
-    def draw(self, current_time: int) -> None:
+    def draw(self, time: int) -> None:
         grouped: dict[str, list[Drone]] = {}
 
         for drone in self.drones:
@@ -37,83 +38,115 @@ class DroneRenderer:
 
         for drones in grouped.values():
             for index, drone in enumerate(drones):
-                position = self._get_position(
-                    drone,
-                    current_time,
-                )
-
-                position = self.geometry.offset_drone_position(
-                    position,
+                position = self.geo.offset_drone_position(
+                    self._get_position(drone, time),
                     index,
                     len(drones),
                 )
 
-                angle = self._get_angle(drone)
+                self._draw_drone(
+                    position,
+                    self._get_angle(drone),
+                )
 
-                self._draw_drone(position, angle)
-                self._draw_id(position, drone.drone_id)
+                self._draw_id(
+                    position,
+                    drone.drone_id,
+                )
+
                 self._draw_progress(
                     drone,
                     position,
-                    current_time,
+                    time,
                 )
 
     def _get_position(
         self,
         drone: Drone,
-        current_time: int,
+        time: int,
     ) -> tuple[int, int]:
         hubs = self.graph.fly_map.hubs
         current_hub = hubs[drone.current_hub]
-        previous_name = self.simulation.get_drone_previous_hub(
-            drone.drone_id
+        previous_name = (
+            self.sim.get_drone_previous_hub(
+                drone.drone_id,
+            )
         )
+        previous_hub = hubs[previous_name]
 
         if drone.moving:
             source_hub = current_hub
-            target_hub = hubs[drone.route.hubs[drone.position + 1]]
+            target_hub = hubs[
+                drone.route.hubs[
+                    drone.position + 1
+                ]
+            ]
             movement_cost = drone.last_move_cost
         else:
-            source_hub = hubs[previous_name]
+            source_hub = previous_hub
             target_hub = current_hub
             movement_cost = (
                 drone.last_move_cost
-                if previous_name != drone.current_hub
+                if previous_hub != current_hub
                 else 1
             )
 
         if source_hub == target_hub:
-            return self.geometry.position(hubs, current_hub.x, current_hub.y)
+            return self.geo.position(
+                hubs,
+                current_hub.x,
+                current_hub.y,
+            )
 
-        start_time = self.animation_start.get(
+        start_time = self.anim_start.get(
             drone.drone_id,
-            current_time,
+            time,
         )
-        elapsed = current_time - start_time
+
         progress = min(
-            elapsed / (self.animation_duration * movement_cost),
+            (
+                time - start_time
+            ) / (
+                self.duration * movement_cost
+            ),
             1.0,
         )
 
-        x = source_hub.x + (target_hub.x - source_hub.x) * progress
-        y = source_hub.y + (target_hub.y - source_hub.y) * progress
+        x = (
+            source_hub.x
+            + (target_hub.x - source_hub.x)
+            * progress
+        )
 
-        return self.geometry.position(hubs, x, y)
+        y = (
+            source_hub.y
+            + (target_hub.y - source_hub.y)
+            * progress
+        )
 
-    def _get_angle(self, drone: Drone) -> float:
+        return self.geo.position(
+            hubs,
+            x,
+            y,
+        )
+
+    def _get_angle(
+        self,
+        drone: Drone,
+    ) -> float:
         if drone.finished:
             return 0.0
 
         hubs = self.graph.fly_map.hubs
-
-        current = hubs[drone.current_hub]
-
+        current_hub = hubs[drone.current_hub]
         next_hub = hubs[
-            drone.route.hubs[drone.position + 1]
+            drone.route.hubs[
+                drone.position + 1
+            ]
         ]
 
-        dx = next_hub.x - current.x
-        dy = next_hub.y - current.y
+        dx = next_hub.x - current_hub.x
+        dy = next_hub.y - current_hub.y
 
         return math.degrees(
             math.atan2(dy, dx)
@@ -126,6 +159,10 @@ class DroneRenderer:
     ) -> None:
         x, y = position
 
+        radians = math.radians(angle)
+        cos_angle = math.cos(radians)
+        sin_angle = math.sin(radians)
+
         points = [
             (14, 0),
             (-8, -8),
@@ -133,22 +170,17 @@ class DroneRenderer:
             (-8, 8),
         ]
 
-        radians = math.radians(angle)
-        cos_angle = math.cos(radians)
-        sin_angle = math.sin(radians)
-
-        rotated_points = []
-
-        for px, py in points:
-            rx = px * cos_angle - py * sin_angle
-            ry = px * sin_angle + py * cos_angle
-
-            rotated_points.append(
-                (
-                    round(x + rx),
-                    round(y + ry),
-                )
+        rotated_points = [
+            (
+                round(
+                    x + px * cos_angle - py * sin_angle,
+                ),
+                round(
+                    y + px * sin_angle + py * cos_angle,
+                ),
             )
+            for px, py in points
+        ]
 
         pygame.draw.polygon(
             self.screen,
@@ -172,8 +204,10 @@ class DroneRenderer:
         self.screen.blit(
             label,
             (
-                position[0] - label.get_width() // 2,
-                position[1] - label.get_height() // 2,
+                position[0]
+                - label.get_width() // 2,
+                position[1]
+                - label.get_height() // 2,
             ),
         )
 
@@ -181,21 +215,39 @@ class DroneRenderer:
         self,
         drone: Drone,
         position: tuple[int, int],
-        current_time: int,
+        time: int,
     ) -> None:
-        if not drone.moving or drone.last_move_cost != 2:
+        if drone.last_move_cost != 2:
             return
 
-        start_time = self.animation_start.get(
+        previous_name = (
+            self.sim.get_drone_previous_hub(
+                drone.drone_id,
+            )
+        )
+
+        if (
+            not drone.moving
+            and previous_name == drone.current_hub
+        ):
+            return
+
+        start_time = self.anim_start.get(
             drone.drone_id,
-            current_time,
+            time,
         )
 
         progress = min(
-            (current_time - start_time)
-            / self.animation_duration,
+            (
+                time - start_time
+            ) / (
+                self.duration * 2
+            ),
             1.0,
         )
+
+        if progress >= 1.0:
+            return
 
         rectangle = pygame.Rect(
             position[0] - 27,
@@ -209,7 +261,8 @@ class DroneRenderer:
             (255, 235, 80),
             rectangle,
             math.pi / 2,
-            math.pi / 2 + math.tau * progress,
+            math.pi / 2
+            + math.tau * progress,
             4,
         )
 
@@ -224,7 +277,8 @@ class DroneRenderer:
         self.screen.blit(
             label,
             (
-                position[0] - label.get_width() // 2,
+                position[0]
+                - label.get_width() // 2,
                 position[1] + 30,
             ),
         )

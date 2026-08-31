@@ -39,19 +39,18 @@ def main() -> int:
         print("No path found")
         return 1
 
-    print("Paths found:")
     for index, route in enumerate(routes, start=1):
         print(f"{index}: {' -> '.join(route.hubs)}")
 
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
 
-    print("\nDrone assignments:")
-    for drone in drones:
-        print(
-            f"Drone {drone.drone_id}: "
-            f"{' -> '.join(drone.route.hubs)}"
-        )
+    #print("\nDrone assignments:")
+    #for drone in drones:
+    #    print(
+    #        f"Drone {drone.drone_id}: "
+    #        f"{' -> '.join(drone.route.hubs)}"
+    #    )
 
     simulation = Simulation(drones, graph)
 
@@ -69,21 +68,21 @@ def main() -> int:
     print(f"Total turns: {simulation.time}")
     print(f"Total drones: {len(drones)}")
 
-    print("\nFinal routes:")
-    for drone in drones:
-        print(
-            f"Drone {drone.drone_id}: "
-            f"{' -> '.join(drone.route.hubs)}"
-        )
+    #print("\nFinal routes:")
+    #for drone in drones:
+    #    print(
+    #        f"Drone {drone.drone_id}: "
+    #        f"{' -> '.join(drone.route.hubs)}"
+    #    )
 
-    print("\nFinal positions:")
-    for drone in drones:
-        print(
-            f"Drone {drone.drone_id}: "
-            f"{drone.current_hub}"
-        )
+    #print("\nFinal positions:")
+    #for drone in drones:
+    #    print(
+    #        f"Drone {drone.drone_id}: "
+    #        f"{drone.current_hub}"
+    #    )
 
-    print("=" * 50)
+    #print("=" * 50)
 
     return 0
 
