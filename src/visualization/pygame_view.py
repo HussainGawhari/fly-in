@@ -27,8 +27,12 @@ class PygameView:
         self.paused = False
         self.animation_start: dict[int, int] = {}
 
+        display_info = pygame.display.Info()
+        screen_width = display_info.current_w
+        screen_height = display_info.current_h
+
         self.screen = pygame.display.set_mode(
-            (1000, 700),
+            (screen_width, screen_height),
             pygame.RESIZABLE,
         )
 
@@ -97,6 +101,9 @@ class PygameView:
                         self.step_interval - 100,
                         100,
                     )
+
+                elif event.key == pygame.K_h:
+                    self.renderer.toggle_hub_info()
 
                 elif event.key == pygame.K_r:
                     self._reset()

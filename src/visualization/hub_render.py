@@ -36,6 +36,10 @@ class HubRenderer:
         self.graph = graph
         self.drones = drones
         self.geometry = geometry
+        self.show_hub_info = True
+
+    def toggle_hub_info(self) -> None:
+        self.show_hub_info = not self.show_hub_info
 
     def draw(self) -> None:
         font = pygame.font.Font(None, 24)
@@ -51,7 +55,7 @@ class HubRenderer:
                 self.screen,
                 self._color(hub),
                 position,
-                22,
+                26,
             )
 
             if hub.zone == "restricted":
@@ -59,29 +63,30 @@ class HubRenderer:
                     self.screen,
                     (100, 190, 255),
                     position,
-                    29,
+                    33,
                     3,
                 )
 
-            label = font.render(
-                hub.name,
-                True,
-                (255, 255, 255),
-            )
+            if self.show_hub_info:
+                label = font.render(
+                    hub.name,
+                    True,
+                    (255, 255, 255),
+                )
 
-            self.screen.blit(
-                label,
-                (
-                    position[0] - label.get_width() // 2,
-                    position[1] - 45,
-                ),
-            )
+                self.screen.blit(
+                    label,
+                    (
+                        position[0] - label.get_width() // 2,
+                        position[1] - 45,
+                    ),
+                )
 
-            self._draw_capacity(
-                hub,
-                position,
-                font,
-            )
+                self._draw_capacity(
+                    hub,
+                    position,
+                    font,
+                )
 
     def _draw_capacity(
         self,

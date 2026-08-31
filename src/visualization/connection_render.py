@@ -8,6 +8,10 @@ class ConnectionRenderer:
         self.screen = screen
         self.graph = graph
         self.geometry = geometry
+        self.show_hub_info = True
+
+    def toggle_hub_info(self) -> None:
+        self.show_hub_info = not self.show_hub_info
 
     def draw(self) -> None:
         font = pygame.font.Font(None, 18)
@@ -36,6 +40,9 @@ class ConnectionRenderer:
                 end,
                 3,
             )
+
+            if not self.show_hub_info:
+                continue
 
             middle = (
                 (start[0] + end[0]) // 2,

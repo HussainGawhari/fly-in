@@ -8,6 +8,7 @@ from src.models.route import Route
 from src.routing.graph import Graph
 from src.routing.path_finder import Pathfinder
 from src.simulation.simulation import Simulation
+from src.visualization.hub_render import HubRenderer
 
 
 def make_graph(
@@ -25,6 +26,22 @@ def make_graph(
 
 
 class ConstraintTests(unittest.TestCase):
+    def test_hub_info_can_be_hidden_and_shown(self) -> None:
+        renderer = HubRenderer(
+            screen=None,
+            graph=None,
+            drones=[],
+            geometry=None,
+        )
+
+        self.assertTrue(renderer.show_hub_info)
+
+        renderer.toggle_hub_info()
+        self.assertFalse(renderer.show_hub_info)
+
+        renderer.toggle_hub_info()
+        self.assertTrue(renderer.show_hub_info)
+
     def test_start_and_end_hubs_are_unlimited_by_default(self) -> None:
         start = Hub(name="start", x=0, y=0, is_start=True)
         end = Hub(name="end", x=1, y=0, is_end=True)

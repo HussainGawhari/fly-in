@@ -34,7 +34,7 @@ class ControlsRenderer:
             f"Time: {self.simulation.time} | "
             f"Speed: {1000 / step_interval:.1f} steps/s | "
             f"SPACE: pause | LEFT/RIGHT: speed | "
-            f"R: restart | ESC: quit"
+            f"R: restart | H: hide / unhide info | ESC: quit"
         )
 
         label = font.render(
@@ -43,7 +43,8 @@ class ControlsRenderer:
             (230, 230, 230),
         )
 
-        self.screen.blit(label, (20, 660))
+        bottom_y = self.screen.get_height() - 40
+        self.screen.blit(label, (20, bottom_y))
 
     def draw_info(self) -> None:
         font = pygame.font.Font(None, 32)

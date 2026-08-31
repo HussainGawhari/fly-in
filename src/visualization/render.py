@@ -21,11 +21,7 @@ class Renderer:
         animation_start: dict[int, int],
         animation_duration: int,
     ) -> None:
-        # Switch to fullscreen.
-        self.screen = pygame.display.set_mode(
-            (0, 0),
-            pygame.FULLSCREEN,
-        )
+        self.screen = screen
 
         self.geometry = Geometry(self.screen)
 
@@ -57,6 +53,10 @@ class Renderer:
             drones,
             simulation,
         )
+
+    def toggle_hub_info(self) -> None:
+        self.hubs.toggle_hub_info()
+        self.connections.toggle_hub_info()
 
     def draw(
         self,
