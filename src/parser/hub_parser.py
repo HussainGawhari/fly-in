@@ -4,6 +4,10 @@ from src.parser.metadata_parser import MetadataParser
 
 
 class HubParser:
+    """Parses hub declarations and optional metadata.
+
+    This includes zone information, capacity rules, and start/end markers.
+    """
 
     VALID_ZONES = {
         "normal",
@@ -13,6 +17,7 @@ class HubParser:
     }
 
     def __init__(self) -> None:
+        """Initialize the metadata parser used to read hub attributes."""
         self.metadata_parser = MetadataParser()
 
     def parse(
@@ -22,7 +27,7 @@ class HubParser:
             is_start: bool = False,
             is_end: bool = False,
     ) -> Hub:
-
+        """Build a Hub object from a raw line in the map file."""
         metadata_text = ""
 
         if "[" in content:
@@ -83,7 +88,6 @@ class HubParser:
                 line_number,
             )
 
-        # start and end have ultimate capacity
         if is_start or is_end:
             max_drones = None
 

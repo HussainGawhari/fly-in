@@ -6,6 +6,8 @@ from src.routing.graph import Graph
 
 
 class HubRenderer:
+    """Draws hubs and their metadata, such as names and current occupancy."""
+
     COLORS: dict[str, tuple[int, int, int]] = {
         "red": (255, 0, 0),
         "green": (0, 255, 0),

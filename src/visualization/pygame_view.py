@@ -8,12 +8,15 @@ from .render import Renderer
 
 
 class PygameView:
+    """Main pygame window and event loop for the simulation viewer."""
+
     def __init__(
         self,
         graph: Graph,
         drones: list[Drone],
         simulation: Simulation,
     ) -> None:
+        """Initialize the window, renderer, and timing state for the app."""
         pygame.init()
 
         self.graph = graph

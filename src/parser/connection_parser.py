@@ -4,12 +4,14 @@ from src.parser.metadata_parser import MetadataParser
 
 
 class ConnectionParser:
+    """Parses a connection declaration from a map file."""
 
     def __init__(self) -> None:
+        """Create the metadata parser used for optional link attributes."""
         self.metadata_parser = MetadataParser()
 
     def parse(self, content: str, line_number: int) -> Connection:
-
+        """Build a Connection object from a raw connection line."""
         metadata_text = ""
 
         if "[" in content:

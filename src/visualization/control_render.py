@@ -5,12 +5,15 @@ from src.simulation.simulation import Simulation
 
 
 class ControlsRenderer:
+    """Displays simulation status, timing, and keyboard shortcuts in the UI."""
+
     def __init__(
         self,
         screen,
         drones: list[Drone],
         simulation: Simulation,
     ) -> None:
+        """Store the rendering surface and the values needed for HUD text."""
         self.screen = screen
         self.drones = drones
         self.simulation = simulation
@@ -20,6 +23,7 @@ class ControlsRenderer:
         paused: bool,
         step_interval: int,
     ) -> None:
+        """Render the controller line with status, speed, and action hints."""
         font = pygame.font.Font(None, 24)
 
         if paused:

@@ -1,16 +1,18 @@
 from src.exception import ParserError
 
-"""we will parse: [zone=restricted color=red max_drones=2]  """
-
 
 class MetadataParser:
+    """Parse optional bracketed metadata sections.
+
+    Example: [zone=restricted color=red max_drones=2].
+    """
 
     def parse(
             self,
             text: str,
             line_number: int,
     ) -> dict[str, str]:
-
+        """Convert the bracketed metadata chunk into a key/value dictionary."""
         text = text.strip()
 
         if not text:

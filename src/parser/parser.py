@@ -9,12 +9,15 @@ from src.parser.hub_parser import HubParser
 
 
 class MapParser:
+    """Loads a map file and builds the in-memory graph model."""
 
     def __init__(self) -> None:
+        """Create the specialized parsers used for hubs and connections."""
         self.hub_parser = HubParser()
         self.connection_parser = ConnectionParser()
 
     def parse_file(self, path: Path) -> FlyMap:
+        """Parse the map file and return the fully built FlyMap object."""
         lines = path.read_text(encoding="utf-8").splitlines()
 
         nb_drones: int | None = None

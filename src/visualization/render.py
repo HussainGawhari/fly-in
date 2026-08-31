@@ -1,5 +1,3 @@
-import pygame
-
 from src.models.drone import Drone
 from src.routing.graph import Graph
 from src.simulation.simulation import Simulation
@@ -12,6 +10,8 @@ from .hub_render import HubRenderer
 
 
 class Renderer:
+    """Coordinates all sub-renderers used to draw the simulation view."""
+
     def __init__(
         self,
         screen,
@@ -21,6 +21,7 @@ class Renderer:
         animation_start: dict[int, int],
         animation_duration: int,
     ) -> None:
+        """Initialize the map, drone, and control renderers for one screen."""
         self.screen = screen
 
         self.geometry = Geometry(self.screen)

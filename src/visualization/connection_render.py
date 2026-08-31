@@ -4,16 +4,27 @@ from src.routing.graph import Graph
 
 
 class ConnectionRenderer:
+    """Draw links and optional capacity labels.
+
+    This renderer is responsible for the visual connection layer in the map.
+    """
+
     def __init__(self, screen, graph: Graph, geometry) -> None:
+        """Store the display and geometry used when drawing links."""
         self.screen = screen
         self.graph = graph
         self.geometry = geometry
         self.show_hub_info = True
 
     def toggle_hub_info(self) -> None:
+        """Toggle visibility of link labels and related metadata."""
         self.show_hub_info = not self.show_hub_info
 
     def draw(self) -> None:
+        """Render each connection line and its capacity label.
+
+        Labels are skipped when the visibility toggle is disabled.
+        """
         font = pygame.font.Font(None, 18)
         hubs = self.graph.fly_map.hubs
 

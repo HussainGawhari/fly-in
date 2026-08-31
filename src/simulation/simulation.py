@@ -1,15 +1,21 @@
 from src.models.connection import Connection
 from src.models.drone import Drone
-# from src.models.hub import Hub # ignore
 from src.routing.graph import Graph
 
 
 class Simulation:
+    """Run the drone movement rules over time.
+
+    It tracks each drone, hub usage, and connection usage while the
+    simulation advances from turn to turn.
+    """
+
     def __init__(
         self,
         drones: list[Drone],
         graph: Graph,
     ) -> None:
+        """Store the active drones and the map graph."""
         self.drones = drones
         self.graph = graph
         self.time = 0
@@ -19,14 +25,17 @@ class Simulation:
         }
 
     def run(self) -> None:
+        """Advance the simulation until every drone has finished its route."""
         while not self._finished():
             self.step()
 
     @property
     def finished(self) -> bool:
+        """Return whether all drones have completed their assigned route."""
         return self._finished()
 
     def step(self) -> None:
+        """Execute one simulation turn and trigger movement decisions."""
         self.time += 1
 
         self._complete_travel()

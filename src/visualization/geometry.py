@@ -4,7 +4,14 @@ from src.models.hub import Hub
 
 
 class Geometry:
+    """Handle map scaling and screen coordinates.
+
+    This class converts logical hub positions into pixel coordinates used by
+    the Pygame view.
+    """
+
     def __init__(self, screen) -> None:
+        """Store the current display for conversion."""
         self.screen = screen
 
     def position(
@@ -13,6 +20,7 @@ class Geometry:
         x: float,
         y: float,
     ) -> tuple[int, int]:
+        """Map logical coordinates to the current on-screen positions."""
         hub_values = list(hubs.values())
 
         min_x = min(hub.x for hub in hub_values)
