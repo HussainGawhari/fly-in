@@ -1,4 +1,4 @@
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 """
@@ -18,3 +18,9 @@ class Hub(BaseModel):
 
     is_start: bool = False
     is_end: bool = False
+
+    @model_validator(mode="after")
+    def normalize_capacity(self):
+        if self.is_start or self.is_end:
+            self.max_drones = None
+        return self

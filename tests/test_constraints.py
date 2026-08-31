@@ -25,6 +25,15 @@ def make_graph(
 
 
 class ConstraintTests(unittest.TestCase):
+    def test_start_and_end_hubs_are_unlimited_by_default(self) -> None:
+        start = Hub(name="start", x=0, y=0, is_start=True)
+        end = Hub(name="end", x=1, y=0, is_end=True)
+        normal = Hub(name="mid", x=2, y=0)
+
+        self.assertIsNone(start.max_drones)
+        self.assertIsNone(end.max_drones)
+        self.assertEqual(normal.max_drones, 1)
+
     def test_zone_capacity_blocks_second_drone(self) -> None:
         graph = make_graph(
             [
@@ -94,6 +103,29 @@ class ConstraintTests(unittest.TestCase):
         path = Pathfinder(graph).find_path("start", "end")
 
         self.assertEqual(path, ["start", "priority", "end"])
+
+    def test_best_paths_uses_dijkstra_route_only(self) -> None:
+        graph = make_graph(
+            [
+                Hub(name="start", x=0, y=0, is_start=True, max_drones=None),
+                Hub(name="direct", x=1, y=0),
+                Hub(name="detour", x=1, y=1),
+                Hub(name="detour-end", x=1, y=2),
+                Hub(name="end", x=2, y=0, is_end=True, max_drones=None),
+            ],
+            [
+                Connection(hub1="start", hub2="direct"),
+                Connection(hub1="direct", hub2="end"),
+                Connection(hub1="start", hub2="detour"),
+                Connection(hub1="detour", hub2="detour-end"),
+                Connection(hub1="detour-end", hub2="end"),
+            ],
+        )
+
+        routes = Pathfinder(graph).find_best_paths("start", "end")
+
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].hubs, ["start", "direct", "end"])
 
     def test_connection_capacity_allows_parallel_moves(self) -> None:
         graph = make_graph(

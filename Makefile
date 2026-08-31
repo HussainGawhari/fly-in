@@ -4,10 +4,12 @@ install:
 	$(PYTHON) -m pip install -r requirements.txt
 
 run:
-	$(PYTHON) -m src.main maps/easy/02_simple_fork.txt
+	@test -n "$(FILE)" || (echo "Usage: make run FILE=<map_file>"; exit 1)
+	$(PYTHON) -m src.main "$(FILE)"
 
 debug:
-	$(PYTHON) -m pdb -m src.main maps/easy/02_simple_fork.txt
+	@test -n "$(FILE)" || (echo "Usage: make debug FILE=<map_file>"; exit 1)
+	$(PYTHON) -m pdb -m src.main "$(FILE)"
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

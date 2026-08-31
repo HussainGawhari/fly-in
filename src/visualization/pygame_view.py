@@ -154,29 +154,10 @@ class PygameView:
     ) -> None:
         for drone in self.drones:
             drone_id = drone.drone_id
+            previous_hub = positions_before[drone_id]
+            current_hub = drone.current_hub
+            movement_changed = previous_hub != current_hub
+            travel_state_changed = was_moving[drone_id] != drone.moving
 
-            arrived_from_restricted = (
-                was_moving[drone_id]
-                and not drone.moving
-                and drone.last_move_cost == 2
-            )
-
-            started_travel = (
-                not was_moving[drone_id]
-                and drone.moving
-            )
-
-            arrived_normally = (
-                not was_moving[drone_id]
-                and not drone.moving
-                and positions_before[drone_id]
-                != drone.current_hub
-            )
-
-            if arrived_from_restricted:
-                continue
-
-            if started_travel or arrived_normally:
-                self.animation_start[
-                    drone_id
-                ] = current_time
+            if movement_changed or travel_state_changed:
+                self.animation_start[drone_id] = current_time

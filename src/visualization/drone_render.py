@@ -64,52 +64,41 @@ class DroneRenderer:
         current_time: int,
     ) -> tuple[int, int]:
         hubs = self.graph.fly_map.hubs
-
         current_hub = hubs[drone.current_hub]
-
-        previous_name = (
-            self.simulation.get_drone_previous_hub(
-                drone.drone_id
-            )
+        previous_name = self.simulation.get_drone_previous_hub(
+            drone.drone_id
         )
 
-        previous_hub = hubs[previous_name]
-        target_hub = current_hub
-
-        movement_cost = drone.last_move_cost
-
         if drone.moving:
-            target_hub = hubs[
-                drone.route.hubs[drone.position + 1]
-            ]
-            previous_hub = current_hub
+            source_hub = current_hub
+            target_hub = hubs[drone.route.hubs[drone.position + 1]]
+            movement_cost = drone.last_move_cost
+        else:
+            source_hub = hubs[previous_name]
+            target_hub = current_hub
+            movement_cost = (
+                drone.last_move_cost
+                if previous_name != drone.current_hub
+                else 1
+            )
+
+        if source_hub == target_hub:
+            return self.geometry.position(hubs, current_hub.x, current_hub.y)
 
         start_time = self.animation_start.get(
             drone.drone_id,
             current_time,
         )
-
         elapsed = current_time - start_time
-
         progress = min(
-            elapsed
-            / (self.animation_duration * movement_cost),
+            elapsed / (self.animation_duration * movement_cost),
             1.0,
         )
 
-        x = previous_hub.x + (
-            target_hub.x - previous_hub.x
-        ) * progress
+        x = source_hub.x + (target_hub.x - source_hub.x) * progress
+        y = source_hub.y + (target_hub.y - source_hub.y) * progress
 
-        y = previous_hub.y + (
-            target_hub.y - previous_hub.y
-        ) * progress
-
-        return self.geometry.position(
-            hubs,
-            x,
-            y,
-        )
+        return self.geometry.position(hubs, x, y)
 
     def _get_angle(self, drone: Drone) -> float:
         if drone.finished:
