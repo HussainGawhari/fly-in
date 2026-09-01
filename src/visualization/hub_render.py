@@ -38,7 +38,7 @@ class HubRenderer:
         self.graph = graph
         self.drones = drones
         self.geometry = geometry
-        self.show_hub_info = True
+        self.show_hub_info = False
 
     def toggle_hub_info(self) -> None:
         self.show_hub_info = not self.show_hub_info
@@ -83,7 +83,7 @@ class HubRenderer:
                         position[1] - 45,
                     ),
                 )
-
+            if self.show_hub_info:
                 self._draw_capacity(
                     hub,
                     position,

@@ -14,10 +14,12 @@ class Simulation:
         self,
         drones: list[Drone],
         graph: Graph,
+        capacity_info: bool = False
     ) -> None:
         """Store the active drones and the map graph."""
         self.drones = drones
         self.graph = graph
+        self.capacity_info = capacity_info
         self.time = 0
         self.previous_positions: dict[int, str] = {
             drone.drone_id: drone.current_hub
@@ -39,10 +41,10 @@ class Simulation:
         self.time += 1
 
         self._complete_travel()
-        hub_usage = self._get_hub_usage()
-        link_usage: dict[frozenset[str], int] = {}
+        self.hub_usage = self._get_hub_usage()
+        self.link_usage: dict[frozenset[str], int] = {}
         reserved_hubs = self._get_reserved_hubs()
-        link_usage.update(self._get_travel_link_usage())
+        self.link_usage.update(self._get_travel_link_usage())
 
         ordered_drones = sorted(
             self.drones,
@@ -65,8 +67,8 @@ class Simulation:
             if not self._can_move(
                 current,
                 next_hub,
-                hub_usage,
-                link_usage,
+                self.hub_usage,
+                self.link_usage,
                 reserved_hubs,
             ):
                 continue
@@ -78,16 +80,39 @@ class Simulation:
 
             drone.last_move_cost = self._movement_cost(next_hub)
             drone.travel_remaining = drone.last_move_cost
-            link_usage[link.key] = link_usage.get(link.key, 0) + 1
+            self.link_usage[link.key] = self.link_usage.get(link.key, 0) + 1
 
             if drone.travel_remaining == 1:
                 self._finish_drone_move(drone)
-                hub_usage[current] -= 1
-                hub_usage[next_hub] = hub_usage.get(next_hub, 0) + 1
+                self.hub_usage[current] -= 1
+                self.hub_usage[next_hub] = self.hub_usage.get(next_hub, 0) + 1
             else:
                 reserved_hubs[next_hub] = reserved_hubs.get(next_hub, 0) + 1
 
         self._print_state()
+        if self.capacity_info:
+            self._print_capacity_info()
+
+    def _print_capacity_info(self) -> None:
+        print(f"\nCapacity information - Turn {self.time}")
+
+        for hub in self.graph.fly_map.hubs.values():
+            usage = self.hub_usage.get(hub.name, 0)
+
+            if hub.max_drones is not None:
+                print(
+                    f"Zone {hub.name}: "
+                    f"{usage}/{hub.max_drones} drones"
+                )
+
+        for connection in self.graph.fly_map.connections:
+            usage = self.link_usage.get(connection.key, 0)
+
+            print(
+                f"Connection {connection.hub1}-{connection.hub2}: "
+                f"{usage}/{connection.max_link_capacity} "
+                f"capacity used"
+            )
 
     def _get_hub_usage(self) -> dict[str, int]:
         usage: dict[str, int] = {}

@@ -5,6 +5,7 @@ from src.models.drone import Drone
 from src.models.hub import Hub
 from src.models.map import FlyMap
 from src.models.route import Route
+from src.parser.hub_parser import HubParser
 from src.routing.graph import Graph
 from src.routing.path_finder import Pathfinder
 from src.simulation.simulation import Simulation
@@ -50,6 +51,15 @@ class ConstraintTests(unittest.TestCase):
         self.assertIsNone(start.max_drones)
         self.assertIsNone(end.max_drones)
         self.assertEqual(normal.max_drones, 1)
+
+    def test_parser_defaults_regular_hubs_to_one_drones_capacity(self) -> None:
+        normal = HubParser().parse("mid 2 3", 1)
+        start = HubParser().parse("start 0 0", 1, is_start=True)
+        end = HubParser().parse("end 9 9", 1, is_end=True)
+
+        self.assertEqual(normal.max_drones, 1)
+        self.assertIsNone(start.max_drones)
+        self.assertIsNone(end.max_drones)
 
     def test_zone_capacity_blocks_second_drone(self) -> None:
         graph = make_graph(

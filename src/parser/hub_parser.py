@@ -69,14 +69,14 @@ class HubParser:
                 line_number,
             )
         color = metadata.get("color")
-        max_drones: int | None = None
+        max_drones: int | None = 1
         if "max_drones" in metadata:
             try:
                 max_drones_str = metadata.get("max_drones")
                 if max_drones_str is not None:
                     max_drones = int(max_drones_str)
                 else:
-                    max_drones = None
+                    max_drones = 1
             except ValueError:
                 raise ParserError(
                     "max_drones must be an integer",

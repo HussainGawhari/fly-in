@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+
 from src.exception import ParserError
 from src.parser.parser import MapParser
 from src.routing.graph import Graph
@@ -11,11 +12,17 @@ from src.visualization.pygame_view import PygameView
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
+    capacity_info = False
+    if len(sys.argv) == 3 and sys.argv[1] == "--capacity_info":
+        capacity_info = True
+        map_path = Path(sys.argv[2])
+    elif len(sys.argv) == 2:
+        map_path = Path(sys.argv[1])
+    else:
         print("Usage: python -m src.main <map_file>")
         return 1
 
-    map_path = Path(sys.argv[1])
+    # map_path = Path(sys.argv[1])
 
     try:
         fly_map = MapParser().parse_file(map_path)
@@ -26,7 +33,7 @@ def main() -> int:
     if fly_map.start_hub is None or fly_map.end_hub is None:
         print("Error: start_hub or end_hub is missing")
         return 1
-
+        
     graph = Graph(fly_map)
     pathfinder = Pathfinder(graph)
 
@@ -45,7 +52,9 @@ def main() -> int:
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
 
-    simulation = Simulation(drones, graph)
+    simulation = Simulation(drones, graph, capacity_info)
+
+    # if sys.argv[3] == "--capacity_info":
 
     view = PygameView(
         graph,
