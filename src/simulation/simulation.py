@@ -1,6 +1,6 @@
 from src.models.connection import Connection
 from src.models.drone import Drone
-from src.routing.graph import Graph
+from src.graph.graph import Graph
 
 
 class Simulation:

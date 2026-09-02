@@ -1,7 +1,7 @@
 import pygame
 
 from src.models.drone import Drone
-from src.routing.graph import Graph
+from src.graph.graph import Graph
 from src.simulation.simulation import Simulation
 
 from .render import Renderer

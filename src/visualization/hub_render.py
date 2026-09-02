@@ -2,7 +2,7 @@ import pygame
 
 from src.models.drone import Drone
 from src.models.hub import Hub
-from src.routing.graph import Graph
+from src.graph.graph import Graph
 from src.visualization.geometry import Geometry
 
 

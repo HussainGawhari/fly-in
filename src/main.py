@@ -3,8 +3,8 @@ import sys
 
 from src.exception import ParserError
 from src.parser.parser import MapParser
-from src.routing.graph import Graph
-from src.routing.path_finder import Pathfinder
+from src.graph.graph import Graph
+from src.graph.algorithms import Pathfinder
 from src.simulation.scheduler import Scheduler
 from src.simulation.simulation import Simulation
 from src.visualization.pygame_view import PygameView
