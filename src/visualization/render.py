@@ -66,7 +66,6 @@ class Renderer:
         step_interval: int,
     ) -> None:
         self.screen.fill((30, 30, 30))
-
         self.connections.draw()
         self.hubs.draw()
         self.drones.draw(current_time)

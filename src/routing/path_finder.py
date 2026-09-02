@@ -1,7 +1,24 @@
-import heapq
-
 from src.models.route import Route
 from src.routing.graph import Graph
+
+
+class _PriorityQueue:
+    """Small priority queue used by the Dijkstra path search."""
+
+    def __init__(self) -> None:
+        self._items: list[tuple[tuple[int, int], str]] = []
+
+    def put(self, cost: tuple[int, int], hub_name: str) -> None:
+        index = 0
+        while index < len(self._items) and self._items[index][0] <= cost:
+            index += 1
+        self._items.insert(index, (cost, hub_name))
+
+    def get(self) -> tuple[tuple[int, int], str]:
+        return self._items.pop(0)
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
 
 
 class Pathfinder:
@@ -20,12 +37,24 @@ class Pathfinder:
 
         If no valid route exists, the method returns None.
         """
-        queue: list[tuple[int, int, str]] = [(0, 0, start)]
+        return self._search(start, goal, {})
+
+    def _search(
+        self,
+        start: str,
+        goal: str,
+        extra_cost: dict[str, int],
+    ) -> list[str] | None:
+        """Run Dijkstra while optionally discouraging used hubs."""
+        queue = _PriorityQueue()
         best_cost: dict[str, tuple[int, int]] = {start: (0, 0)}
         parent: dict[str, str | None] = {start: None}
+        queue.put((0, 0), start)
 
         while queue:
-            turns, priority_penalty, current = heapq.heappop(queue)
+            current_cost, current = queue.get()
+            if current_cost != best_cost[current]:
+                continue
 
             if current == goal:
                 return self._build_path(parent, goal)
@@ -34,8 +63,10 @@ class Pathfinder:
                 if self.graph.fly_map.hubs[neighbor].zone == "blocked":
                     continue
                 next_cost = (
-                    turns + self._movement_cost(neighbor),
-                    priority_penalty + self._priority_penalty(neighbor),
+                    current_cost[0]
+                    + self._movement_cost(neighbor)
+                    + extra_cost.get(neighbor, 0),
+                    current_cost[1] + self._priority_penalty(neighbor),
                 )
                 if next_cost >= best_cost.get(
                     neighbor,
@@ -44,7 +75,7 @@ class Pathfinder:
                     continue
                 best_cost[neighbor] = next_cost
                 parent[neighbor] = current
-                heapq.heappush(queue, (*next_cost, neighbor))
+                queue.put(next_cost, neighbor)
 
         return None
 
@@ -88,7 +119,26 @@ class Pathfinder:
         max_paths: int = 5,
     ) -> list[Route]:
         """Return the preferred route list for the solver."""
-        return self.find_paths(start, goal, max_paths)
+        first_path = self.find_path(start, goal)
+        if first_path is None:
+            return []
+
+        if self.graph.fly_map.nb_drones <= 1 or max_paths <= 1:
+            return [Route(first_path)]
+
+        routes = [first_path]
+        extra_cost: dict[str, int] = {}
+
+        for _ in range(max_paths - 1):
+            for hub_name in routes[-1][1:-1]:
+                extra_cost[hub_name] = extra_cost.get(hub_name, 0) + 8
+
+            path = self._search(start, goal, extra_cost)
+            if path is None or path in routes:
+                break
+            routes.append(path)
+
+        return [Route(path) for path in routes]
 
     def _movement_cost(self, hub_name: str) -> int:
         """Return the travel cost for entering a hub zone."""

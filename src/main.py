@@ -54,8 +54,6 @@ def main() -> int:
 
     simulation = Simulation(drones, graph, capacity_info)
 
-    # if sys.argv[3] == "--capacity_info":
-
     view = PygameView(
         graph,
         drones,

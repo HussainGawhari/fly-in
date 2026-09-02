@@ -20,7 +20,7 @@ class Simulation:
         self.drones = drones
         self.graph = graph
         self.capacity_info = capacity_info
-        self.time = 0
+        self.time = -1
         self.previous_positions: dict[int, str] = {
             drone.drone_id: drone.current_hub
             for drone in drones
@@ -244,7 +244,7 @@ class Simulation:
             drone.travel_remaining = 0
             drone.last_move_cost = 1
 
-        self.time = 0
+        self.time = -1
 
         self.previous_positions = {
             drone.drone_id: drone.current_hub
