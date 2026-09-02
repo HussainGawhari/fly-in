@@ -18,7 +18,7 @@ class Simulation:
         """Store the active drones and the map graph."""
         self.drones = drones
         self.graph = graph
-        self.time = -1
+        self.time = 0
         self.previous_positions: dict[int, str] = {
             drone.drone_id: drone.current_hub
             for drone in drones
