@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pygame
 from src.models.hub import Hub
 
 
@@ -10,7 +11,7 @@ class Geometry:
     the Pygame view.
     """
 
-    def __init__(self, screen) -> None:
+    def __init__(self, screen: pygame.Surface) -> None:
         """Store the current display for conversion."""
         self.screen = screen
 
@@ -28,8 +29,8 @@ class Geometry:
         min_y = min(hub.y for hub in hub_values)
         max_y = max(hub.y for hub in hub_values)
 
-        map_width = max_x - min_x
-        map_height = max_y - min_y
+        map_width: int = max_x - min_x
+        map_height: int = max_y - min_y
 
         window_width, window_height = self.screen.get_size()
 

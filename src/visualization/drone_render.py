@@ -1,11 +1,11 @@
 import math
-from typing import Any
 
 import pygame
 
 from src.models.drone import Drone
 from src.routing.graph import Graph
 from src.simulation.simulation import Simulation
+from src.visualization.geometry import Geometry
 
 
 class DroneRenderer:
@@ -15,7 +15,7 @@ class DroneRenderer:
         graph: Graph,
         drones: list[Drone],
         simulation: Simulation,
-        geometry: Any,
+        geometry: Geometry,
         animation_start: dict[int, int],
         animation_duration: int,
     ) -> None:

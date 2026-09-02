@@ -1,7 +1,6 @@
 from pathlib import Path
 import sys
 
-
 from src.exception import ParserError
 from src.parser.parser import MapParser
 from src.routing.graph import Graph
@@ -12,28 +11,19 @@ from src.visualization.pygame_view import PygameView
 
 
 def main() -> int:
-    capacity_info = False
-    if len(sys.argv) == 3 and sys.argv[1] == "--capacity_info":
-        capacity_info = True
-        map_path = Path(sys.argv[2])
-    elif len(sys.argv) == 2:
-        map_path = Path(sys.argv[1])
-    else:
+
+    if len(sys.argv) != 2:
         print("Usage: python -m src.main <map_file>")
         return 1
-
-    # map_path = Path(sys.argv[1])
-
+    map_path = Path(sys.argv[1])
     try:
         fly_map = MapParser().parse_file(map_path)
     except (OSError, ParserError) as error:
         print(f"Error: {error}")
         return 1
-
     if fly_map.start_hub is None or fly_map.end_hub is None:
         print("Error: start_hub or end_hub is missing")
         return 1
-        
     graph = Graph(fly_map)
     pathfinder = Pathfinder(graph)
 
@@ -41,30 +31,17 @@ def main() -> int:
         fly_map.start_hub,
         fly_map.end_hub,
     )
-
-    if not routes:
-        print("No path found")
-        return 1
-
     for index, route in enumerate(routes, start=1):
         print(f"{index}: {' -> '.join(route.hubs)}")
-
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
-
-    simulation = Simulation(drones, graph, capacity_info)
-
+    simulation = Simulation(drones, graph)
     view = PygameView(
         graph,
         drones,
         simulation,
     )
-
     view.run()
-
-    print("\n" + "=" * 50)
-    print("SIMULATION SOLUTION")
-    print("=" * 50)
     print(f"Total turns: {simulation.time}")
     print(f"Total drones: {len(drones)}")
 

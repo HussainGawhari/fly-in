@@ -14,12 +14,10 @@ class Simulation:
         self,
         drones: list[Drone],
         graph: Graph,
-        capacity_info: bool = False
     ) -> None:
         """Store the active drones and the map graph."""
         self.drones = drones
         self.graph = graph
-        self.capacity_info = capacity_info
         self.time = -1
         self.previous_positions: dict[int, str] = {
             drone.drone_id: drone.current_hub
@@ -90,8 +88,6 @@ class Simulation:
                 reserved_hubs[next_hub] = reserved_hubs.get(next_hub, 0) + 1
 
         self._print_state()
-        if self.capacity_info:
-            self._print_capacity_info()
 
     def _print_capacity_info(self) -> None:
         print(f"\nCapacity information - Turn {self.time}")

@@ -1,3 +1,5 @@
+import pygame
+
 from src.models.drone import Drone
 from src.routing.graph import Graph
 from src.simulation.simulation import Simulation
@@ -14,7 +16,7 @@ class Renderer:
 
     def __init__(
         self,
-        screen,
+        screen: pygame.Surface,
         graph: Graph,
         drones: list[Drone],
         simulation: Simulation,
@@ -23,7 +25,6 @@ class Renderer:
     ) -> None:
         """Initialize the map, drone, and control renderers for one screen."""
         self.screen = screen
-
         self.geometry = Geometry(self.screen)
 
         self.connections = ConnectionRenderer(

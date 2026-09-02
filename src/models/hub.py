@@ -20,7 +20,7 @@ class Hub(BaseModel):
     is_end: bool = False
 
     @model_validator(mode="after")
-    def normalize_capacity(self):
+    def normalize_capacity(self) -> "Hub":
         """Ensure the start and end hubs keep unlimited capacity."""
         if self.is_start or self.is_end:
             self.max_drones = None

@@ -9,7 +9,7 @@ class ControlsRenderer:
 
     def __init__(
         self,
-        screen,
+        screen: pygame.Surface,
         drones: list[Drone],
         simulation: Simulation,
     ) -> None:

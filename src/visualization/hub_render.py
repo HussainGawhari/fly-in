@@ -3,6 +3,7 @@ import pygame
 from src.models.drone import Drone
 from src.models.hub import Hub
 from src.routing.graph import Graph
+from src.visualization.geometry import Geometry
 
 
 class HubRenderer:
@@ -29,10 +30,10 @@ class HubRenderer:
 
     def __init__(
         self,
-        screen,
+        screen: pygame.Surface,
         graph: Graph,
         drones: list[Drone],
-        geometry,
+        geometry: Geometry,
     ) -> None:
         self.screen = screen
         self.graph = graph

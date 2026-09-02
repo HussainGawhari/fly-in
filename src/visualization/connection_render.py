@@ -1,6 +1,7 @@
 import pygame
 
 from src.routing.graph import Graph
+from src.visualization.geometry import Geometry
 
 
 class ConnectionRenderer:
@@ -9,7 +10,12 @@ class ConnectionRenderer:
     This renderer is responsible for the visual connection layer in the map.
     """
 
-    def __init__(self, screen, graph: Graph, geometry) -> None:
+    def __init__(
+            self,
+            screen: pygame.Surface,
+            graph: Graph,
+            geometry: Geometry
+            ) -> None:
         """Store the display and geometry used when drawing links."""
         self.screen = screen
         self.graph = graph
@@ -65,5 +71,4 @@ class ConnectionRenderer:
                 True,
                 (180, 180, 180),
             )
-
             self.screen.blit(label, middle)
