@@ -4,47 +4,65 @@ from src.graph.graph import Graph
 
 
 class Simulation:
-    """Run the drone movement rules over time.
+    """Run the drone simulation."""
 
-    It tracks each drone, hub usage, and connection usage while the
-    simulation advances from turn to turn.
-    """
+    TERMINAL_COLORS = {
+        "red": "31",
+        "darkred": "31",
+        "crimson": "31",
+        "green": "32",
+        "yellow": "33",
+        "orange": "33",
+        "brown": "33",
+        "gold": "33",
+        "blue": "34",
+        "purple": "35",
+        "violet": "35",
+        "cyan": "36",
+        "maroon": "31",
+        "gray": "90",
+        "grey": "90",
+        "white": "97",
+        "black": "30",
+    }
 
     def __init__(
         self,
         drones: list[Drone],
         graph: Graph,
     ) -> None:
-        """Store the active drones and the map graph."""
         self.drones = drones
         self.graph = graph
         self.time = 0
-        self.previous_positions: dict[int, str] = {
+        self.current_turn_movements: list[str] = []
+
+        self.previous_positions = {
             drone.drone_id: drone.current_hub
             for drone in drones
         }
 
+        self.hub_usage: dict[str, int] = {}
+        self.link_usage: dict[frozenset[str], int] = {}
+
     def run(self) -> None:
-        """Advance the simulation until every drone has finished its route."""
-        while not self._finished():
+        while not self.finished:
             self.step()
 
     @property
     def finished(self) -> bool:
-        """Return whether all drones have completed their assigned route."""
-        return self._finished()
+        return all(drone.finished for drone in self.drones)
 
     def step(self) -> None:
-        """Execute one simulation turn and trigger movement decisions."""
         self.time += 1
+        self.current_turn_movements = []
 
         self._complete_travel()
-        self.hub_usage = self._get_hub_usage()
-        self.link_usage: dict[frozenset[str], int] = {}
-        reserved_hubs = self._get_reserved_hubs()
-        self.link_usage.update(self._get_travel_link_usage())
 
-        ordered_drones = sorted(
+        self.hub_usage = self._get_hub_usage()
+        self.link_usage = self._get_travel_link_usage()
+        reserved_hubs = self._get_reserved_hubs()
+
+        drones = sorted(
             self.drones,
             key=lambda drone: (
                 self._is_priority_drone(drone),
@@ -53,142 +71,195 @@ class Simulation:
             reverse=True,
         )
 
-        for drone in ordered_drones:
-            if drone.finished:
+        for drone in drones:
+            if drone.finished or drone.moving:
                 continue
-            if drone.moving:
+
+            next_position = drone.position + 1
+
+            if next_position >= len(drone.route.hubs):
                 continue
 
             current = drone.current_hub
-            next_hub = drone.route.hubs[drone.position + 1]
+            next_hub = drone.route.hubs[next_position]
+            connection = self._find_connection(current, next_hub)
+
+            if connection is None:
+                continue
 
             if not self._can_move(
-                current,
                 next_hub,
-                self.hub_usage,
-                self.link_usage,
+                connection,
                 reserved_hubs,
             ):
                 continue
 
             self.previous_positions[drone.drone_id] = current
-            link = self._find_connection(current, next_hub)
-            if link is None:
-                continue
 
-            drone.last_move_cost = self._movement_cost(next_hub)
-            drone.travel_remaining = drone.last_move_cost
-            self.link_usage[link.key] = self.link_usage.get(link.key, 0) + 1
+            drone.travel_remaining = self._movement_cost(next_hub)
+
+            self.link_usage[connection.key] = (
+                self.link_usage.get(connection.key, 0) + 1
+            )
 
             if drone.travel_remaining == 1:
                 self._finish_drone_move(drone)
+
                 self.hub_usage[current] -= 1
-                self.hub_usage[next_hub] = self.hub_usage.get(next_hub, 0) + 1
-            else:
-                reserved_hubs[next_hub] = reserved_hubs.get(next_hub, 0) + 1
-
-        self._print_state()
-
-    def _print_capacity_info(self) -> None:
-        print(f"\nCapacity information - Turn {self.time}")
-
-        for hub in self.graph.fly_map.hubs.values():
-            usage = self.hub_usage.get(hub.name, 0)
-
-            if hub.max_drones is not None:
-                print(
-                    f"Zone {hub.name}: "
-                    f"{usage}/{hub.max_drones} drones"
+                self.hub_usage[next_hub] = (
+                    self.hub_usage.get(next_hub, 0) + 1
                 )
 
-        for connection in self.graph.fly_map.connections:
-            usage = self.link_usage.get(connection.key, 0)
+                self._record_movement(
+                    drone,
+                    next_hub,
+                )
+            else:
+                reserved_hubs[next_hub] = (
+                    reserved_hubs.get(next_hub, 0) + 1
+                )
 
-            print(
-                f"Connection {connection.hub1}-{connection.hub2}: "
-                f"{usage}/{connection.max_link_capacity} "
-                f"capacity used"
+                self._record_movement(
+                    drone,
+                    self._connection_name(connection),
+                )
+        self._print_turn()
+
+    def _complete_travel(self) -> None:
+        """Complete movements that were started in previous turns."""
+        for drone in self.drones:
+            if not drone.moving:
+                continue
+
+            drone.travel_remaining -= 1
+
+            if drone.travel_remaining == 0:
+                self._finish_drone_move(drone)
+                self._record_movement(
+                    drone,
+                    drone.current_hub,
+                )
+
+    def _record_movement(
+        self,
+        drone: Drone,
+        destination: str,
+    ) -> None:
+        """Record one drone movement."""
+        text = f"D{drone.drone_id}-{destination}"
+        hub = self.graph.fly_map.hubs.get(destination)
+
+        if hub is not None:
+            color = self.TERMINAL_COLORS.get(
+                (hub.color or "").lower()
             )
 
+            if color:
+                text = f"\033[{color}m{text}\033[0m"
+
+        self.current_turn_movements.append(text)
+
+    def _print_turn(self) -> None:
+        """Print the turn number and movements."""
+        if not self.current_turn_movements:
+            return
+
+        print(f"Turn {self.time}")
+        print(" ".join(self.current_turn_movements))
+        print()
+
     def _get_hub_usage(self) -> dict[str, int]:
+        """Count drones currently occupying each hub."""
         usage: dict[str, int] = {}
 
         for drone in self.drones:
+            if drone.finished:
+                continue
             hub = drone.current_hub
             usage[hub] = usage.get(hub, 0) + 1
 
         return usage
 
+    def _get_reserved_hubs(self) -> dict[str, int]:
+        """Count destination hubs reserved by drones in flight."""
+        reserved: dict[str, int] = {}
+
+        for drone in self.drones:
+            if not drone.moving:
+                continue
+
+            next_position = drone.position + 1
+
+            if next_position >= len(drone.route.hubs):
+                continue
+
+            next_hub = drone.route.hubs[next_position]
+            reserved[next_hub] = reserved.get(next_hub, 0) + 1
+        return reserved
+
+    def _get_travel_link_usage(
+        self,
+    ) -> dict[frozenset[str], int]:
+        """Count connections currently used by drones in flight."""
+        usage: dict[frozenset[str], int] = {}
+
+        for drone in self.drones:
+            if not drone.moving:
+                continue
+
+            next_position = drone.position + 1
+
+            if next_position >= len(drone.route.hubs):
+                continue
+
+            next_hub = drone.route.hubs[next_position]
+            connection = self._find_connection(
+                drone.current_hub,
+                next_hub,
+            )
+
+            if connection is not None:
+                usage[connection.key] = (
+                    usage.get(connection.key, 0) + 1
+                )
+        return usage
+
     def _can_move(
         self,
-        current: str,
         next_hub: str,
-        hub_usage: dict[str, int],
-        link_usage: dict[frozenset[str], int],
+        connection: Connection,
         reserved_hubs: dict[str, int],
     ) -> bool:
+        """Check hub and connection capacity."""
         hub = self.graph.fly_map.hubs[next_hub]
+
         if hub.zone == "blocked":
             return False
 
-        if (
-            hub.max_drones is not None
-            and (
-                hub_usage.get(next_hub, 0)
-                + reserved_hubs.get(next_hub, 0)
-                >= hub.max_drones
-            )
-        ):
-            return False
+        if hub.max_drones is not None:
+            occupied = self.hub_usage.get(next_hub, 0)
+            reserved = reserved_hubs.get(next_hub, 0)
 
-        connection = self._find_connection(current, next_hub)
-
-        if connection is None:
-            return False
+            if occupied + reserved >= hub.max_drones:
+                return False
 
         capacity = connection.max_link_capacity
 
         if capacity is not None:
-            if link_usage.get(connection.key, 0) >= capacity:
-                return False
+            used = self.link_usage.get(connection.key, 0)
 
+            if used >= capacity:
+                return False
         return True
 
     def _movement_cost(self, hub_name: str) -> int:
-        zone = self.graph.fly_map.hubs[hub_name].zone
-        return 2 if zone == "restricted" else 1
-
-    def _complete_travel(self) -> None:
-        for drone in self.drones:
-            if not drone.moving:
-                continue
-            drone.travel_remaining -= 1
-            if drone.travel_remaining == 0:
-                self._finish_drone_move(drone)
+        if self.graph.fly_map.hubs[hub_name].zone == "restricted":
+            return 2
+        return 1
 
     def _finish_drone_move(self, drone: Drone) -> None:
         drone.travel_remaining = 0
         drone.move()
-
-    def _get_reserved_hubs(self) -> dict[str, int]:
-        reserved: dict[str, int] = {}
-        for drone in self.drones:
-            if drone.moving:
-                next_hub = drone.route.hubs[drone.position + 1]
-                reserved[next_hub] = reserved.get(next_hub, 0) + 1
-        return reserved
-
-    def _get_travel_link_usage(self) -> dict[frozenset[str], int]:
-        usage: dict[frozenset[str], int] = {}
-        for drone in self.drones:
-            if drone.moving:
-                link = self._find_connection(
-                    drone.current_hub,
-                    drone.route.hubs[drone.position + 1],
-                )
-                if link is not None:
-                    usage[link.key] = usage.get(link.key, 0) + 1
-        return usage
 
     def _find_connection(
         self,
@@ -200,38 +271,15 @@ class Simulation:
         for connection in self.graph.fly_map.connections:
             if connection.key == key:
                 return connection
-
         return None
 
-    def _finished(self) -> bool:
-        return all(drone.finished for drone in self.drones)
+    def _connection_name(self, connection: Connection) -> str:
+        name = getattr(connection, "name", None)
 
-    def _print_state(self) -> None:
-        states: list[str] = []
+        if name:
+            return str(name)
 
-        for drone in self.drones:
-            if drone.moving:
-                next_hub = drone.route.hubs[drone.position + 1]
-                next_zone = self.graph.fly_map.hubs[next_hub].zone
-
-                if next_zone == "restricted":
-                    connection = self._find_connection(
-                        drone.current_hub,
-                        next_hub,
-                    )
-                    location = (
-                        f"{drone.current_hub}-{next_hub}"
-                        if connection is not None
-                        else next_hub
-                    )
-                else:
-                    location = next_hub
-            else:
-                location = drone.current_hub
-
-            states.append(f"D{drone.drone_id}-{location}")
-
-        print(" ".join(states))
+        return f"{connection.hub1}-{connection.hub2}"
 
     def _is_priority_drone(self, drone: Drone) -> bool:
         next_position = drone.position + 1
@@ -240,9 +288,10 @@ class Simulation:
             return False
 
         next_hub = drone.route.hubs[next_position]
-        hub = self.graph.fly_map.hubs[next_hub]
 
-        return hub.zone == "priority"
+        return (
+            self.graph.fly_map.hubs[next_hub].zone == "priority"
+        )
 
     def get_drone_previous_hub(self, drone_id: int) -> str:
         return self.previous_positions[drone_id]
@@ -253,9 +302,13 @@ class Simulation:
             drone.travel_remaining = 0
             drone.last_move_cost = 1
 
-        self.time = -1
+        self.time = 0
+        self.current_turn_movements = []
 
         self.previous_positions = {
             drone.drone_id: drone.current_hub
             for drone in self.drones
         }
+
+        self.hub_usage = {}
+        self.link_usage = {}

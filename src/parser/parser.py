@@ -22,10 +22,11 @@ class MapParser:
 
         nb_drones: int | None = None
         hubs: dict[str, Hub] = {}
-        connections: list[Connection] = []
+        raw_connections: list[tuple[str, int]] = []
 
         start_hub: str | None = None
         end_hub: str | None = None
+        line_number: int = 0
 
         for line_number, row_line in enumerate(lines, start=1):
             line = row_line.strip()
@@ -34,7 +35,7 @@ class MapParser:
             if line.startswith("nb_drones:"):
                 if nb_drones is not None:
                     raise ParserError(
-                        "Dublicate nb_drones",
+                        "Duplicate nb_drones",
                         line_number,
                     )
                 value = line[len("nb_drones:"):].strip()
@@ -48,13 +49,13 @@ class MapParser:
                     )
                 if nb_drones <= 0:
                     raise ParserError(
-                        "nb_drones must be positive intger",
+                        "nb_drones must be positive integer",
                         line_number,
                     )
             elif line.startswith("start_hub:"):
                 if start_hub is not None:
                     raise ParserError(
-                        "duclicate start_hub",
+                        "duplicate start_hub",
                         line_number,
                     )
                 content = line[len("start_hub:"):].strip()
@@ -72,7 +73,7 @@ class MapParser:
             elif line.startswith("end_hub:"):
                 if end_hub is not None:
                     raise ParserError(
-                        "Dulicate end_hub",
+                        "Duplicate end_hub",
                         line_number,
                     )
                 content = line[len("end_hub:"):].strip()
@@ -84,7 +85,7 @@ class MapParser:
                 self._add_hub(
                     hubs,
                     hub,
-                    line_number
+                    line_number,
                 )
                 end_hub = hub.name
             elif line.startswith("hub:"):
@@ -101,53 +102,57 @@ class MapParser:
 
             elif line.startswith("connection:"):
                 content = line[len("connection:"):].strip()
-                connection = self.connection_parser.parse(
-                    content,
-                    line_number,
-                )
-                self._valided_connection(
-                    connection,
-                    hubs,
-                    connections,
-                    line_number,
-                )
-
-                connections.append(connection)
+                raw_connections.append((content, line_number))
 
             else:
                 raise ParserError(
-                    "unknow syntax",
+                    "unknown syntax",
                     line_number,
                 )
+
         if nb_drones is None:
             raise ParserError(
                 "missing nb_drones",
                 line_number,
-                )
+            )
         if start_hub is None:
             raise ParserError(
                 "missing start_hub",
                 line_number,
-                )
+            )
         if end_hub is None:
             raise ParserError(
                 "missing end_hub",
                 line_number,
-                )
+            )
+
+        connections: list[Connection] = []
+        for content, conn_line_number in raw_connections:
+            connection = self.connection_parser.parse(
+                content,
+                conn_line_number,
+            )
+            self._valided_connection(
+                connection,
+                hubs,
+                connections,
+                conn_line_number,
+            )
+            connections.append(connection)
 
         return FlyMap(
             nb_drones=nb_drones,
             hubs=hubs,
             connections=connections,
             start_hub=start_hub,
-            end_hub=end_hub
+            end_hub=end_hub,
         )
 
     @staticmethod
     def _add_hub(
         hubs: dict[str, Hub],
         hub: Hub,
-        line_number: int
+        line_number: int,
     ) -> None:
         if hub.name in hubs:
             raise ParserError(
@@ -163,7 +168,6 @@ class MapParser:
         connections: list[Connection],
         line_number: int,
     ) -> None:
-
         if connection.hub1 not in hubs:
             raise ParserError(
                 f"unknown hub {connection.hub1}",

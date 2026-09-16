@@ -66,30 +66,22 @@ class DroneRenderer:
         time: int,
     ) -> tuple[int, int]:
         hubs = self.graph.fly_map.hubs
+
         current_hub = hubs[drone.current_hub]
-        previous_name = (
-            self.sim.get_drone_previous_hub(
-                drone.drone_id,
-            )
+
+        previous_name = self.sim.get_drone_previous_hub(
+            drone.drone_id,
         )
         previous_hub = hubs[previous_name]
 
         if drone.moving:
             source_hub = current_hub
             target_hub = hubs[
-                drone.route.hubs[
-                    drone.position + 1
-                ]
+                drone.route.hubs[drone.position + 1]
             ]
-            movement_cost = drone.last_move_cost
         else:
             source_hub = previous_hub
             target_hub = current_hub
-            movement_cost = (
-                drone.last_move_cost
-                if previous_hub != current_hub
-                else 1
-            )
 
         if source_hub == target_hub:
             return self.geo.position(
@@ -103,25 +95,26 @@ class DroneRenderer:
             time,
         )
 
+        elapsed = max(0, time - start_time)
+
+        if drone.last_move_cost == 2:
+            total_time = self.duration * 2
+        else:
+            total_time = self.duration
+
         progress = min(
-            (
-                time - start_time
-            ) / (
-                self.duration * movement_cost
-            ),
+            elapsed / total_time,
             1.0,
         )
 
         x = (
             source_hub.x
-            + (target_hub.x - source_hub.x)
-            * progress
+            + (target_hub.x - source_hub.x) * progress
         )
 
         y = (
             source_hub.y
-            + (target_hub.y - source_hub.y)
-            * progress
+            + (target_hub.y - source_hub.y) * progress
         )
 
         return self.geo.position(
@@ -138,11 +131,14 @@ class DroneRenderer:
             return 0.0
 
         hubs = self.graph.fly_map.hubs
+        next_position = drone.position + 1
+
+        if next_position >= len(drone.route.hubs):
+            return 0.0
+
         current_hub = hubs[drone.current_hub]
         next_hub = hubs[
-            drone.route.hubs[
-                drone.position + 1
-            ]
+            drone.route.hubs[next_position]
         ]
 
         dx = next_hub.x - current_hub.x
@@ -204,10 +200,8 @@ class DroneRenderer:
         self.screen.blit(
             label,
             (
-                position[0]
-                - label.get_width() // 2,
-                position[1]
-                - label.get_height() // 2,
+                position[0] - label.get_width() // 2,
+                position[1] - label.get_height() // 2,
             ),
         )
 
@@ -220,29 +214,15 @@ class DroneRenderer:
         if drone.last_move_cost != 2:
             return
 
-        previous_name = (
-            self.sim.get_drone_previous_hub(
-                drone.drone_id,
-            )
-        )
-
-        if (
-            not drone.moving
-            and previous_name == drone.current_hub
-        ):
-            return
-
         start_time = self.anim_start.get(
             drone.drone_id,
             time,
         )
 
+        elapsed = max(0, time - start_time)
+
         progress = min(
-            (
-                time - start_time
-            ) / (
-                self.duration * 2
-            ),
+            elapsed / (self.duration * 2),
             1.0,
         )
 
@@ -261,8 +241,7 @@ class DroneRenderer:
             (255, 235, 80),
             rectangle,
             math.pi / 2,
-            math.pi / 2
-            + math.tau * progress,
+            math.pi / 2 + math.tau * progress,
             4,
         )
 
@@ -277,8 +256,7 @@ class DroneRenderer:
         self.screen.blit(
             label,
             (
-                position[0]
-                - label.get_width() // 2,
+                position[0] - label.get_width() // 2,
                 position[1] + 30,
             ),
         )

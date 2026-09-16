@@ -11,35 +11,40 @@ from src.visualization.pygame_view import PygameView
 
 
 def main() -> int:
-
     if len(sys.argv) != 2:
         print("Usage: python -m src.main <map_file>")
         return 1
+
     map_path = Path(sys.argv[1])
+    if not map_path.is_file():
+        print(f"Error: '{map_path}' is not a valid file.")
+        return 1
+
     try:
         fly_map = MapParser().parse_file(map_path)
     except (OSError, ParserError) as error:
         print(f"Error: {error}")
         return 1
-    if fly_map.start_hub is None or fly_map.end_hub is None:
-        print("Error: start_hub or end_hub is missing")
-        return 1
-    graph = Graph(fly_map)
-    pathfinder = Pathfinder(graph)
 
-    routes = pathfinder.find_best_paths(
+    graph = Graph(fly_map)
+    routes = Pathfinder(graph).find_best_paths(
         fly_map.start_hub,
-        fly_map.end_hub,
-    )
-    scheduler = Scheduler(routes, fly_map.nb_drones)
-    drones = scheduler.create_drones()
+        fly_map.end_hub)
+    if not routes:
+        print("No solution found for this map")
+        return 1
+
+    drones = Scheduler(routes, fly_map.nb_drones).create_drones()
+    if not drones:
+        print("No solution found for this map")
+        return 1
+
     simulation = Simulation(drones, graph)
-    view = PygameView(
-        graph,
-        drones,
-        simulation,
-    )
-    view.run()
+
+    try:
+        PygameView(graph, drones, simulation).run()
+    except KeyboardInterrupt:
+        print("\nSimulation closed.")
 
     return 0
 

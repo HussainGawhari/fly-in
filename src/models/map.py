@@ -16,5 +16,5 @@ class FlyMap(BaseModel):
     hubs: dict[str, Hub] = Field(default_factory=dict)
     connections: list[Connection] = Field(default_factory=list)
 
-    start_hub: str | None = None
-    end_hub: str | None = None
+    start_hub: str
+    end_hub: str
