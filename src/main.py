@@ -31,8 +31,6 @@ def main() -> int:
         fly_map.start_hub,
         fly_map.end_hub,
     )
-    for index, route in enumerate(routes, start=1):
-        print(f"{index}: {' -> '.join(route.hubs)}")
     scheduler = Scheduler(routes, fly_map.nb_drones)
     drones = scheduler.create_drones()
     simulation = Simulation(drones, graph)
@@ -42,8 +40,6 @@ def main() -> int:
         simulation,
     )
     view.run()
-    print(f"Total turns: {simulation.time}")
-    print(f"Total drones: {len(drones)}")
 
     return 0
 

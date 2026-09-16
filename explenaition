@@ -1,0 +1,311 @@
+Fly-In Project Explanation
+========================
+
+Overall project overview
+------------------------
+Fly-In is a drone routing and simulation project. It reads a map file, builds a graph of hubs and connections, then finds routes for drones while respecting constraints like blocked zones, restricted areas, hub capacity, and connection capacity.
+
+In simple words, the project answers this question:
+
+"If several drones must move from a start point to a goal, how do we find safe, efficient, and valid paths for them, and how do we simulate their movement turn by turn?"
+
+The project contains 4 main parts:
+
+1. Map parsing
+   - A map file like maps/easy/01_linear_path.txt is read.
+   - It contains the drone count, the start hub, the goal hub, intermediate hubs, and all connections.
+
+2. Graph building
+   - The project turns this map into a graph.
+   - Each hub is a node, and each connection is an edge.
+
+3. Pathfinding
+   - The program chooses a route from start to goal.
+   - It tries to avoid blocked areas and prefer better routes depending on the map.
+
+4. Simulation
+   - The drones do not move instantly.
+   - They move turn by turn, and the simulator checks if each move is valid before allowing it.
+
+A very important idea:
+- This is not just a shortest-path problem.
+- It is a shortest-path problem under limits.
+
+That means the algorithm must also think about:
+- whether a hub is full,
+- whether a connection is already used too much,
+- whether the next area is restricted,
+- and whether all drones can move without conflicts.
+
+Example from the map files
+--------------------------
+Look at this part of a map:
+
+start_hub: start 0 0 [color=green]
+hub: waypoint1 1 0 [color=blue]
+hub: waypoint2 2 0 [color=blue]
+end_hub: goal 3 0 [color=red]
+
+connection: start-waypoint1
+connection: waypoint1-waypoint2
+connection: waypoint2-goal
+
+This means:
+- start connects to waypoint1
+- waypoint1 connects to waypoint2
+- waypoint2 connects to goal
+
+So the route is basically:
+
+start -> waypoint1 -> waypoint2 -> goal
+
+The pathfinding algorithm will look for this kind of route automatically.
+
+Example from the code: graph and path search
+--------------------------------------------
+The real logic is in src/graph/algorithms.py.
+
+The file defines a priority queue and a Pathfinder class.
+
+The key method is:
+
+    def _search(self, start: str, goal: str, extra_cost: dict[str, int]) -> list[str] | None:
+
+This method works like this:
+
+- It starts from the start hub.
+- It explores neighboring hubs.
+- It keeps the best cost known for each hub.
+- It stops when it reaches the goal.
+
+This part is important:
+
+    for neighbor in self.graph.neighbors(current):
+        if self.graph.fly_map.hubs[neighbor].zone == "blocked":
+            continue
+
+This means:
+- if a neighbor is blocked, the algorithm refuses to go there.
+- so blocked areas are never used.
+
+Another part:
+
+    next_cost = (
+        current_cost[0]
+        + self._movement_cost(neighbor)
+        + extra_cost.get(neighbor, 0),
+        current_cost[1] + self._priority_penalty(neighbor),
+    )
+
+This means each step gets a cost:
+- normal zone = 1
+- restricted zone = 2
+- extra penalties may be added for already-used hubs
+
+So the algorithm is like a weighted shortest-path search.
+
+Example:
+- start -> A -> B -> goal
+- A and B are cheap to traverse
+- restricted zone adds more cost
+- the algorithm chooses the route with the lowest total cost
+
+Example from code: alternative routes
+------------------------------------
+The method below creates multiple candidate routes:
+
+    def find_best_paths(self, start: str, goal: str, max_paths: int = 5) -> list[Route]:
+
+It does this:
+
+    routes = [first_path]
+    extra_cost: dict[str, int] = {}
+
+    for _ in range(max_paths - 1):
+        for hub_name in routes[-1][1:-1]:
+            extra_cost[hub_name] = extra_cost.get(hub_name, 0) + 8
+
+        path = self._search(start, goal, extra_cost)
+
+This is a very important idea.
+
+If the first route is:
+
+start -> A -> B -> goal
+
+then the algorithm adds a penalty to A and B, so the next route tries to avoid them.
+
+This creates alternatives like:
+
+start -> C -> D -> goal
+
+This is useful when several drones are moving at once. They do not all take the same path.
+
+Example from code: restricted and priority logic
+-----------------------------------------------
+This method is used to assign movement cost:
+
+    def _movement_cost(self, hub_name: str) -> int:
+        zone = self.graph.fly_map.hubs[hub_name].zone
+        return 2 if zone == "restricted" else 1
+
+This means:
+- if the next hub is restricted, it costs 2 instead of 1.
+- so the algorithm avoids restricted zones unless necessary.
+
+There is also this:
+
+    def _priority_penalty(self, hub_name: str) -> int:
+        return 0 if self.graph.fly_map.hubs[hub_name].zone == "priority" else 1
+
+This says:
+- priority zones are favored during tie-breaking,
+- if two routes have equal cost, the algorithm prefers the one that goes through priority hubs.
+
+Example from code: simulation turn-by-turn
+-----------------------------------------
+The actual movement simulation is in src/simulation/simulation.py.
+
+The main method is:
+
+    def step(self) -> None:
+
+Inside step(), the simulation does this in order:
+
+1. Increase the turn count
+2. Complete any drone already in motion
+3. Check hub usage and connection usage
+4. Sort drones by priority
+5. Try to move each drone if it is valid
+6. Print the state of the turn
+
+Important part:
+
+    for drone in ordered_drones:
+        if drone.finished:
+            continue
+        if drone.moving:
+            continue
+
+This means:
+- finished drones do nothing,
+- drones currently moving do nothing until they finish their current trip,
+- only drones that are ready can start moving.
+
+Then:
+
+    current = drone.current_hub
+    next_hub = drone.route.hubs[drone.position + 1]
+
+This means each drone looks at:
+- its current hub,
+- where it wants to go next.
+
+Then the code checks:
+
+    if not self._can_move(
+        current,
+        next_hub,
+        self.hub_usage,
+        self.link_usage,
+        reserved_hubs,
+    ):
+        continue
+
+This method prevents invalid moves.
+
+For example:
+- if next_hub is blocked, it refuses,
+- if the destination hub is full, it refuses,
+- if the connection is already full, it refuses.
+
+Example from code: movement cost and travel time
+-----------------------------------------------
+This part is important in the simulation:
+
+    drone.last_move_cost = self._movement_cost(next_hub)
+    drone.travel_remaining = drone.last_move_cost
+
+Then:
+
+    def _movement_cost(self, hub_name: str) -> int:
+        zone = self.graph.fly_map.hubs[hub_name].zone
+        return 2 if zone == "restricted" else 1
+
+So if a drone is moving toward a restricted zone:
+- it needs more turns to complete that move,
+- because restricted zones cost more.
+
+Example of turn-based print output
+----------------------------------
+The simulator prints one line for each turn:
+
+    print(" ".join(states))
+
+If the state is:
+- D1 at start
+- D2 at start
+
+it prints:
+
+D1-start D2-start
+
+When one drone moves to the next zone, it prints:
+
+D1-waypoint1 D2-start
+
+And when both are moving:
+
+D1-waypoint2 D2-waypoint1
+
+This is exactly the idea of a turn-by-turn simulation: every turn shows the current position or current movement of all drones.
+
+Example end-to-end flow
+-----------------------
+Imagine a map with 2 drones and route:
+
+start -> waypoint1 -> waypoint2 -> goal
+
+The execution can look like this:
+
+1. Both drones are at start.
+   Output: D1-start D2-start
+
+2. Drone 1 moves to waypoint1, Drone 2 still waits.
+   Output: D1-waypoint1 D2-start
+
+3. Drone 2 moves to waypoint1.
+   Output: D1-waypoint1 D2-waypoint1
+
+4. Both continue.
+   Output: D1-waypoint2 D2-waypoint2
+
+5. Final movement to goal.
+   Output: D1-goal D2-goal
+
+This is the same logic used in the project: each turn is checked, validated, and printed.
+
+Why this algorithm is strong
+---------------------------
+The real power of the project is that it combines:
+
+- graph search (finding paths),
+- cost-based decisions (preferring efficient routes),
+- traffic rules (capacity and blocked areas),
+- and simulation (moving drones turn by turn).
+
+So while many simple pathfinding programs only answer "what is the shortest path?", this project answers:
+
+"what is the best valid route for each drone, while the whole system stays safe and consistent?"
+
+In summary
+----------
+The project is built around a simple idea:
+
+- parse the map,
+- build a graph,
+- find a route with the best cost,
+- simulate turns while respecting rules,
+- print the drone states each turn.
+
+That is why you can see route logic in src/graph/algorithms.py and movement checks in src/simulation/simulation.py. Both parts work together to create the final behavior of the project.

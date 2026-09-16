@@ -212,13 +212,26 @@ class Simulation:
         for drone in self.drones:
             if drone.moving:
                 next_hub = drone.route.hubs[drone.position + 1]
-                location = f"{drone.current_hub}->{next_hub}"
+                next_zone = self.graph.fly_map.hubs[next_hub].zone
+
+                if next_zone == "restricted":
+                    connection = self._find_connection(
+                        drone.current_hub,
+                        next_hub,
+                    )
+                    location = (
+                        f"{drone.current_hub}-{next_hub}"
+                        if connection is not None
+                        else next_hub
+                    )
+                else:
+                    location = next_hub
             else:
                 location = drone.current_hub
 
             states.append(f"D{drone.drone_id}-{location}")
 
-        print(f"{self.time}: {' '.join(states)}")
+        print(" ".join(states))
 
     def _is_priority_drone(self, drone: Drone) -> bool:
         next_position = drone.position + 1
